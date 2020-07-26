@@ -16,7 +16,7 @@ Instead of being a vector, x0 can be a function.
 In this case, it is a generator.
 The n_starts option then tells us to start from the best of n_starts runs.
 """
-function optim_wrap(f, x0::Vector, mapin;
+function optim_wrap(f, x0::Array, mapin;
     nrounds=3,
     optfunc=NelderMead(),
     sense = :Max,

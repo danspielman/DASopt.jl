@@ -82,8 +82,8 @@ end
     nrounds, optfunc, maxevals, sense,
     file=[])
 
-Essentially optim_wrap inside try_many. Kwargs come from both.
-At least one of n or t_lim must be set.
+Call `optim_wrap` inside `try_many`. Kwargs come from both.
+At least one of `n` or `t_lim` must be set.
 """
 function optim_wrap_many(f::Function, gen::Function, mapin;  n = Inf, t_lim = Inf,
     fn_base = "",

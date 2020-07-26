@@ -21,6 +21,8 @@ Repeats for `n` trials or until `t_lim` seconds pass.  One of these must be set.
 - `local_rng::Bool`: if true, gen() should take a RNG as input, and it will be seeded as suggested by `seed`.
   This prevents the gen erator for instances from intefering with any generator the algorithm might use.
 - `verbose::Bool`: for backwards compatibility.  Used to set `verbosity`.
+- `par_batch::Integer`: if 0, don't parallelize. If > 0, run in batches of this size.
+	Will force seed, unless using local_rng.  local_rng parallelizes the time of generation.
 """
 function try_many(func::Function, gen::Function, sense::Symbol; kwargs...)
 
@@ -37,7 +39,8 @@ function try_many_trans(func::Function, gen::Function, sense::Symbol; n = Inf, t
     verbose = false,
     verbosity = 1 + verbose,
     seed = false,
-    local_rng = false)
+    local_rng = false,
+	par_batch = 0)
 
     @assert sense == :Max || sense == :Min
     @assert n < Inf || t_lim < Inf
@@ -50,6 +53,8 @@ function try_many_trans(func::Function, gen::Function, sense::Symbol; n = Inf, t
         bestval = Inf
         comp = <
     end
+
+	merge((a,b),(c,d)) = comp(b, d) ? (a,b) : (c,d)
 
     bestx = []
     bests = []
@@ -72,18 +77,30 @@ function try_many_trans(func::Function, gen::Function, sense::Symbol; n = Inf, t
     end
 
     t0 = time()
-    i = 0
+    i = 1
+
     while (time()-t0 < t_lim && i < n)
-        i += 1
 
-        if local_rng
-            x = gen(rng)
-        else
-            seed && Random.seed!(i)
-            x = gen()
-        end
+		if par_batch == 0
+	        if local_rng
+				Random.seed!(rng, i)
+	            x = gen(rng)
+	        else
+	            seed && Random.seed!(i)
+	            x = gen()
+	        end
+	        x, val = func(x)
+		else
+			range = i:(i+par_batch-1)
+			if local_rng
+				outputs = pmap(j->func(gen(Random.MersenneTwister(j))), range)
+				x, val = reduce(merge, outputs)
+			else
+				inputs = [(Random.seed!(j); x = gen()) for j in range]
+				x, val = reduce(merge, pmap(func, inputs))
+			end
+		end
 
-        x, val = func(x)
         if comp(val,bestval)
             bestval = val
             bestx = x
@@ -95,7 +112,13 @@ function try_many_trans(func::Function, gen::Function, sense::Symbol; n = Inf, t
         elseif verbosity > 1
             println("iteration: $(i), val: $(val)")
         end
-    end
+
+		if par_batch == 0
+			i += 1
+		else
+			i += par_batch
+		end
+	end
 
     verbosity > 0 && println("ran for $(i) iterations and $(time()-t0) seconds")
 

@@ -2,7 +2,7 @@ module DASopt
 
 # Write your package code here.
 
-using FileIO, JLD, Optim, Dates, Random
+using FileIO, JLD, Optim, Dates, Random, Distributed
 
 include("try_many.jl")
 export try_many, try_many_trans

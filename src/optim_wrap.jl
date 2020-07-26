@@ -7,14 +7,12 @@
     options = Optim.Options(),
     n_starts = 0)
 
-f is a nonlinear func to optimize
-x0 is an initial point
-mapin is applied to things like x to put in range.
-We run for nrounds, with a mapin at the end of each to polish.
-
-Instead of being a vector, x0 can be a function.
-In this case, it is a generator.
-The n_starts option then tells us to start from the best of n_starts runs.
+# Arguments
+- `f` is a nonlinear func to optimize
+- `x0` is an initial point. Instead of being a vector, `x0` can be a generator, `like ()->rand(3)`
+- `mapin` is a function applied to things like `x` to put in range.
+- We run for `nrounds`, with a `mapin `at the end of each to polish.
+- The `n_starts` option then tells us to start from the best of `n_starts`runs.
 """
 function optim_wrap(f, x0::Array, mapin;
     nrounds=3,

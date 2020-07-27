@@ -76,7 +76,8 @@ end
         optfunc=NelderMead(),
         sense = :Max,
         options = Optim.Options(),
-        n_starts = 0,)
+        n_starts = 0,
+        par_batch = 0)
 
     val, best = optim_wrap_many(f, x0fun, mapin, nruns;
     nrounds, optfunc, maxevals, sense,
@@ -95,7 +96,8 @@ function optim_wrap_many(f::Function, gen::Function, mapin;  n = Inf, t_lim = In
     optfunc=NelderMead(),
     sense = :Max,
     options = Optim.Options(),
-    n_starts = 0)
+    n_starts = 0,
+    par_batch = 0)
 
     if t_lim < Inf
         tdo = Dict(fn=>getfield(options, fn) for fn ∈ fieldnames(typeof(options)))
@@ -108,7 +110,8 @@ function optim_wrap_many(f::Function, gen::Function, mapin;  n = Inf, t_lim = In
         optfunc=optfunc,
         sense = sense,
         options = options,
-        n_starts = n_starts)
+        n_starts = n_starts,
+        par_batch = par_batch)
 
     # if t_lim, put that into options
 

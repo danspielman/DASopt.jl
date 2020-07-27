@@ -11,5 +11,11 @@ The optimization routines require:
 * A function `gen` that generates random inputs on which to run `opt`
 * A `mapin` function.  Every input will be passed through `mapin`, so the random inputs from `gen` will always be passed through `mapin`. If you don't need a `mapin` function, just use the identity, `id`.
 
-The simplest function is `opt_many`.
+The simplest function is `try_many`.
 It just evaluates `obj` on many random inputs.
+
+To use any of these in parallel, one must:
+- type `using Distributed`
+- `addprocs()`
+- `@everywhere using DASopt`
+-  `@everywhere` define every function you are using

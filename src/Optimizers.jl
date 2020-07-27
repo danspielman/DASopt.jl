@@ -5,7 +5,7 @@ These are optimizers, and wrappers for them, that I like to use.
 =#
 
 """
-    opt = popevolve(f, x0, tlim; n = 10)
+    opt = popevolve(f, x0, tlim; n = 10, mapin = identity)
 
 Generates and evolves a population of potential solutions to minimize the function f.
 
@@ -20,17 +20,18 @@ The return, opt, has a couple of fields:
 """
 function popevolve(f::Function, x0::AbstractArray{Float64}, tlim;
     n_fac = 5,
-    verbose=true)
+    verbose=true,
+    mapin = identity)
 
     n = n_fac*length(x0)
-    pop = [randn(size(x0)) for i in 1:n]
+    pop = [mapin(randn(size(x0))) for i in 1:n]
 
-    popevolve(f, pop, tlim; verbose=verbose)
+    popevolve(f, pop, tlim; verbose=verbose, mapin=mapin)
 
 end
 
 function popevolve(f::Function, pop::AbstractArray{Array{T,N},1}, tlim;
-    verbose=true) where {T,N}
+    verbose=true, mapin=identity) where {T,N}
 
 
     n = length(pop)
@@ -65,12 +66,12 @@ function popevolve(f::Function, pop::AbstractArray{Array{T,N},1}, tlim;
         k = rand(1:n)
 
         del = pop[i] - pop[j]
-        opt = optimize(t->f(pop[k] + t*del), -2, 2, Brent(), iterations = 10)
+        opt = optimize(t->f(mapin(pop[k] + t*del)), -2, 2, Brent(), iterations = 10)
         t = opt.minimizer
         if opt.minimum < vals[k]
             push!(recs, opt.minimum)
             vals[k] = opt.minimum
-            pop[k] += t*del
+            pop[k] = mapin(pop[k] + t*del)
         end
     end
 

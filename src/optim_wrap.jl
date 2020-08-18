@@ -110,8 +110,7 @@ function optim_wrap_many(f::Function, gen::Function, mapin;  n = Inf, t_lim = In
         optfunc=optfunc,
         sense = sense,
         options = options,
-        n_starts = n_starts,
-        par_batch = par_batch)
+        n_starts = n_starts)
 
     # if t_lim, put that into options
 
@@ -119,7 +118,8 @@ function optim_wrap_many(f::Function, gen::Function, mapin;  n = Inf, t_lim = In
         fn_base = fn_base,
         verbosity = verbosity,
         seed = seed,
-        local_rng = local_rng)
+        local_rng = local_rng,
+        par_batch = par_batch)
 
 
 end

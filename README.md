@@ -5,6 +5,13 @@ It is written for unconstrained optimization.  However, many of the functions we
 
 Reporting options from the code require FileIO and JLD.
 
+To generate more detailed documentation, that you can then view on your own machine,
+go to the `docs` directory, with is probably under `~/.julia/packages/DASopt/junk/docs`, 
+where "junk" is a hash so you should just go to the most recent directory,
+and when you are there type `julia make.jl`.
+This will put docs into a `build` directory.
+Open `index.html` in your browser, and bookmark it.
+
 
 The optimization routines require:
 * A function to be optimized, henceforth called `obj`

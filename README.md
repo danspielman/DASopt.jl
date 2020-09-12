@@ -3,6 +3,8 @@
 This package contains wrappers for naive optimization routines and Optim that I (Dan Spielman) have found very useful in my research.  It, of course, requires Optim.
 It is written for unconstrained optimization.  However, many of the functions we want to optimize are subject to constraints. So, we employ a "mapin" function that maps arbitrary vectors into vectors that satisfy the constraints.
 
+[Docstrings for the functions may be found here.](built_docs/index)
+
 Reporting options from the code require FileIO and JLD.
 
 To generate more detailed documentation, that you can then view on your own machine,

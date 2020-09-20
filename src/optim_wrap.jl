@@ -95,6 +95,7 @@ end
         options = Optim.Options(),
         n_starts = 0,
         par_batch = 0,
+        threads = 0,
         stop_val = Inf for -Inf depending on sense)
 
     val, best = optim_wrap_many(f, x0fun, mapin, n_tries;
@@ -116,6 +117,7 @@ function optim_wrap_many(f::Function, gen::Function, mapin;  n_tries = Inf, t_li
     options = Optim.Options(),
     n_starts = 0,
     par_batch = 0,
+    threads = 0,
     stop_val = sense == :Max ? Inf : -Inf)
 
     if t_lim < Inf
@@ -139,6 +141,7 @@ function optim_wrap_many(f::Function, gen::Function, mapin;  n_tries = Inf, t_li
         seed = seed,
         local_rng = local_rng,
         par_batch = par_batch,
+        threads = threads,
         stop_val = stop_val)
 
 

@@ -27,6 +27,8 @@ The rest are optional:
 - `verbose::Bool`: for backwards compatibility.  Used to set `verbosity`.
 - `par_batch::Integer`: if 0, don't parallelize. If > 0, run in batches of this size.
     Will force seed, unless using `local_rng`.  `local_rng` parallelizes the time of generation.
+- `threads::Integer`: if 0, don't use threads. If > 0, will batch with this many threads.
+   Can not use this and par_batch at the same time.
 """
 function try_many(func::Function, gen::Function, sense::Symbol; kwargs...)
 
@@ -45,11 +47,13 @@ function try_many_trans(func::Function, gen::Function, sense::Symbol; n_tries = 
     seed = false,
     local_rng = false,
     par_batch = 0,
+    threads = 0,
     stop_val = sense == :Max ? Inf : -Inf)
 
     @assert sense == :Max || sense == :Min
     @assert n_tries < Inf || t_lim < Inf
     @assert !local_rng || seed
+    @assert threads == 0 || par_batch == 0
 
     if sense == :Max
         bestval = -Inf
@@ -86,7 +90,7 @@ function try_many_trans(func::Function, gen::Function, sense::Symbol; n_tries = 
 
     while (time()-t0 < t_lim && i < n_tries && comp(stop_val, bestval))
 
-		if par_batch == 0
+		if par_batch == 0 && threads == 0
 	        if local_rng
 				Random.seed!(rng, i)
 	            x = gen(rng)
@@ -94,8 +98,20 @@ function try_many_trans(func::Function, gen::Function, sense::Symbol; n_tries = 
 	            seed && Random.seed!(i)
 	            x = gen()
 	        end
-	        x, val = func(x)
-		else
+            x, val = func(x)
+        end
+
+        if threads > 0
+            range = i:(i+threads-1)
+            inputs = Vector{Any}(undef, threads)
+
+            Threads.@threads for j = 1:threads
+                inputs[j] = (Random.seed!(i-i+j); x = func(gen()))
+            end
+			x, val = reduce(merge, inputs)
+        end
+
+		if par_batch > 0
 			range = i:(i+par_batch-1)
 			if local_rng
 				outputs = pmap(j->func(gen(Random.MersenneTwister(j))), range)
@@ -118,10 +134,10 @@ function try_many_trans(func::Function, gen::Function, sense::Symbol; n_tries = 
             println("iteration: $(i), val: $(val)")
         end
 
-		if par_batch == 0
+		if par_batch == 0 && threads == 0
 			i += 1
 		else
-			i += par_batch
+			i += max(par_batch, threads)
 		end
 	end
 

@@ -102,7 +102,6 @@ function try_many_trans(func::Function, gen::Function, sense::Symbol; n_tries = 
         end
 
         if threads > 0
-            range = i:(i+threads-1)
             inputs = Vector{Any}(undef, threads)
 
             Threads.@threads for j = 1:threads
@@ -122,6 +121,12 @@ function try_many_trans(func::Function, gen::Function, sense::Symbol; n_tries = 
 			end
 		end
 
+		if par_batch == 0 && threads == 0
+			i += 1
+		else
+			i += max(par_batch, threads)
+		end
+
         if comp(val,bestval)
             bestval = val
             bestx = x
@@ -134,11 +139,6 @@ function try_many_trans(func::Function, gen::Function, sense::Symbol; n_tries = 
             println("iteration: $(i), val: $(val)")
         end
 
-		if par_batch == 0 && threads == 0
-			i += 1
-		else
-			i += max(par_batch, threads)
-		end
 	end
 
     verbosity > 0 && println("ran for $(i) iterations and $(time()-t0) seconds")

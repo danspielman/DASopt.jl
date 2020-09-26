@@ -5,7 +5,7 @@ These are optimizers, and wrappers for them, that I like to use.
 =#
 
 """
-    opt = popevolve(f, x0, tlim; n = 10, mapin = identity)
+    opt = popevolve(f, x0, tlim; n_fac = 10, mapin = identity)
 
 Generates and evolves a population of potential solutions to minimize the function f.
 

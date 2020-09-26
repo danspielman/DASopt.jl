@@ -20,4 +20,5 @@ optim_wrap_many
 
 ```@docs
 popevolve
+randline
 ```

@@ -12,7 +12,6 @@ or after t_lim seconds.
 Is unlikely to beat other techniques unless it is really important to work
 in the space obtained by applying mapin.
 """
-
 function randline(f::Function, x0, mapin;
     tol = 1e-7,
     t_lim = Inf,

@@ -86,7 +86,7 @@ function try_many_trans(func::Function, gen::Function, sense::Symbol; n_tries = 
     end
 
     t0 = time()
-    i = 1
+    i = 0
 
     while (time()-t0 < t_lim && i < n_tries && comp(stop_val, bestval))
 

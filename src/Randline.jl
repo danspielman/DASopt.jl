@@ -49,7 +49,6 @@ function randline(f::Function, x0, mapin;
         del = randn(size(x))
         del = del * norm(x) / norm(del)
 
-        sizet = 1
         opt = optimize(t->sgn*f(mapin(x + t*del)), -2*sizet, 2*sizet, Brent(), iterations = 10)
         t = opt.minimizer
         newval = sgn*opt.minimum

@@ -2,6 +2,7 @@
     x, val = randline(f, x0, mapin; 
         tol = 1e-7,
         t_lim = Inf,
+        max_its = Inf,
         sense = :Max,
         verbosity = 0)
 
@@ -15,6 +16,7 @@ in the space obtained by applying mapin.
 function randline(f::Function, x0, mapin;
     tol = 1e-7,
     t_lim = Inf,
+    max_its = Inf,
     sense = :Max,
     verbosity = 0)
 
@@ -43,7 +45,7 @@ function randline(f::Function, x0, mapin;
     num_small_t = 0
 
     iters = 0
-    while (time() - t0 < t_lim) && stag_rounds < max_stag
+    while (time() - t0 < t_lim) && stag_rounds < max_stag && iters < max_its
         iters += 1
 
         del = randn(size(x))
@@ -61,7 +63,7 @@ function randline(f::Function, x0, mapin;
                 verbosity > 1 && println("sizet: $(sizet)")
             end
         else
-            if abs(t) > sizet 
+            if sizet < 1 && abs(t) > sizet 
                 sizet *= 2
                 num_small_t = 0
                 verbosity > 1 && println("sizet: $(sizet)")
@@ -81,10 +83,17 @@ function randline(f::Function, x0, mapin;
         end
     end
 
-    if verbosity > 0 && stag_rounds >= n
-        println("Stopped making improvement. Ran for $(iters) iterations.")
-    else
-        println("Time up. Ran for $(iters) iterations.")
+    if verbosity > 0 
+        if stag_rounds >= n
+            println("Stopped making improvement. Ran for $(iters) iterations.")
+        end
+
+        if iters >= max_its
+            println("Reached max_its.")
+        end
+        if time() > t_lim
+            println("Time up. Ran for $(iters) iterations.")
+        end
     end
 
     return x, val

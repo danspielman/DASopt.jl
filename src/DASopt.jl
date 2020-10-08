@@ -16,4 +16,6 @@ export randline
 include("optim_wrap.jl")
 export optim_wrap, optim_wrap_many
 
+include("GoWin.jl")
+export gowin
 end

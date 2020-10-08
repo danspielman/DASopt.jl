@@ -5,12 +5,12 @@ These are optimizers, and wrappers for them, that I like to use.
 =#
 
 """
-    opt = popevolve(f, x0, tlim; n_fac = 10, mapin = identity)
+    opt = popevolve(f, x0, t_lim; n_fac = 10, mapin = identity)
 
 Generates and evolves a population of potential solutions to minimize the function f.
 
 * n is the number of populations elements
-* tlim the time limit in seconds
+* t_lim the time limit in seconds
 
 The return, opt, has a couple of fields:
 * minimizer: the best solution
@@ -18,7 +18,7 @@ The return, opt, has a couple of fields:
 * pop: the population at the end
 
 """
-function popevolve(f::Function, x0::AbstractArray{Float64}, tlim;
+function popevolve(f::Function, x0::AbstractArray{Float64}, t_lim;
     n_fac = 5,
     verbose=true,
     mapin = identity)
@@ -26,11 +26,11 @@ function popevolve(f::Function, x0::AbstractArray{Float64}, tlim;
     n = n_fac*length(x0)
     pop = [mapin(randn(size(x0))) for i in 1:n]
 
-    popevolve(f, pop, tlim; verbose=verbose, mapin=mapin)
+    popevolve(f, pop, t_lim; verbose=verbose, mapin=mapin)
 
 end
 
-function popevolve(f::Function, pop::AbstractArray{Array{T,N},1}, tlim;
+function popevolve(f::Function, pop::AbstractArray{Array{T,N},1}, t_lim;
     verbose=true, mapin=identity) where {T,N}
 
 
@@ -50,8 +50,8 @@ function popevolve(f::Function, pop::AbstractArray{Array{T,N},1}, tlim;
 
     its = 0
 
-    while (time() < t0 + tlim)
-        if time() > t1 + tlim/9
+    while (time() < t0 + t_lim)
+        if time() > t1 + t_lim/9
             verbose && println("$(minimum(vals))")
             t1 = time()
         end
@@ -86,12 +86,12 @@ end
 
 #=
 """
-    x = constrained_min_norm(f, x0, tlim)
+    x = constrained_min_norm(f, x0, t_lim)
 
 f(x) = 0 defines the constraint
-tlim is in minutes
+t_lim is in minutes
 """
-function constrained_min_norm(f, x0, tlim)
+function constrained_min_norm(f, x0, t_lim)
 
     t0 = time()
 

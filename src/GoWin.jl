@@ -39,10 +39,10 @@ function gowin(f, pop, improver; mapin = identity,
 
     if sense == :Max
         bestimum = maximum
-        comp = >
+        comp = >=
     else
         bestimum = minimum
-        comp = <
+        comp = <=
     end
 
     t_stop = time() + t_lim

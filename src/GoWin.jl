@@ -7,13 +7,17 @@ x, val = function gowin(f, pop, improver; mapin = identity,
             t_lim = Inf,
             n_rounds = Inf,
             conv_tol = 1e-7,
-            verbosity = 1)
+            verbosity = 1,
+            threads = false,
+            parallel = false)
         
 A variant of a go with the winner's algorithm.
 Begins with an initial population.
 Runs an `improver` on each element of the population.
 Then, discards the bottom performing half, replicates the top half,
 and keeps going.  
+
+Only one of parallel or threads can be true.
 
 Keeps going for either n_rounds, or until t_lim is hit.
 Also stops if all samples in the population are within conv_tol relative distance from each other.
@@ -28,7 +32,10 @@ function gowin(f, pop, improver; mapin = identity,
     conv_tol = 1e-7,
     verbosity = 1)
 
+    @assert !(parallel && threads)
     @assert sense==:Max || sense==:Min
+
+    serial = !(parallel || threads)
 
     if sense == :Max
         bestimum = maximum
@@ -55,9 +62,21 @@ function gowin(f, pop, improver; mapin = identity,
 
         its += 1
 
-        newpop = improver.(pop)
+        if serial
+            newpop = improver.(pop)
+            vals = f.(newpop)
+        end
 
-        vals = f.(newpop)
+        if parallel
+            newpop = pmap(improver,pop)
+            vals = pmap(f,newpop)
+        end
+
+        if threads 
+            newpop = ThreadsX.map(improver,pop)
+            vals = ThreadsX.map(f,newpop)           
+        end
+        
 
         med = median(vals)
 

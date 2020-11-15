@@ -2,7 +2,7 @@
 
 
 """
-x, val = function gowin(f, pop, improver; mapin = identity,
+    x, val = function gowin(f, pop, improver; mapin = identity,
             sense = :Max,
             t_lim = Inf,
             n_rounds = Inf,
@@ -30,7 +30,9 @@ function gowin(f, pop, improver; mapin = identity,
     t_lim = Inf,
     n_rounds = Inf,
     conv_tol = 1e-7,
-    verbosity = 1)
+    verbosity = 1,
+    parallel = false,
+    threads = false)
 
     @assert !(parallel && threads)
     @assert sense==:Max || sense==:Min

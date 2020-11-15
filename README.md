@@ -35,3 +35,14 @@ To use any of these in parallel, one must:
 - `addprocs()`
 - `@everywhere using DASopt`
 -  `@everywhere` define every function you are using
+
+If you have data that is needed by remote workers and they don't find it, try pushing it to them with a line like:
+~~~
+for i in procs()
+    remotecall_fetch(()->M, i);
+end
+~~~
+
+To build the documentation for this locally, go to the package directory
+(probably under .julia/packages/DASopt/ ) to find the right one, try
+`] st DASopt`. Then type `julia docs/make.jl`. The docs will appear in `docs/build/index.html'

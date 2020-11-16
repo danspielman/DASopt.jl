@@ -90,7 +90,12 @@ function gowin(f, pop, improver; mapin = identity,
 
     vals = f.(pop)
 
-    i = argmax(vals)
+    if sense == :Max
+        i = argmax(vals)
+    else
+        i = argmin(vals)
+    end
+
     x = pop[i]
     val = vals[i]
 

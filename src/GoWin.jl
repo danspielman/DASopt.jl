@@ -2,7 +2,7 @@
 
 
 """
-    x, val = function gowin(f, pop, improver; mapin = identity,
+    x, val = gowin(f, pop, improver; mapin = identity,
             sense = :Max,
             t_lim = Inf,
             n_rounds = Inf,

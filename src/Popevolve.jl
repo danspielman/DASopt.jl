@@ -5,33 +5,71 @@ These are optimizers, and wrappers for them, that I like to use.
 =#
 
 """
-    opt = popevolve(f, x0, t_lim; n_fac = 10, mapin = identity)
+    opt = popevolve(f, x0, t_lim; mapin = identity,
+        sense = :Max,
+        n_fac = 10, 
+        conv_tol = 1e-6,
+        verbosity = 1,
+        threads = false
+    )
 
 Generates and evolves a population of potential solutions to minimize the function f.
 
-* n is the number of populations elements
-* t_lim the time limit in seconds
+# Arguments
+- `x0` is either an example input, and an initial population is generated to look like this. Or it is just the initial population.
+- `n_fac::Integer`: if `x0` is an example rather than a population, the number of elements in the initial population is this times the length of `x0`. 
+- `t_lim`: un upper bound on the number of seconds for which to run
+- `sense`: either `:Max` or `:Min`, default is `:Max`
+- `mapin`: a function to apply to map inputs into the domain
+- `conv_tol`: stop once all solutions are within this distance in function value
+- `threads`: if true use multithreading (not yet working)
 
 The return, opt, has a couple of fields:
-* minimizer: the best solution
-* minimum: the value of it
+* best: the best solution
+* bestval: the value of it
 * pop: the population at the end
 
 """
 function popevolve(f::Function, x0::AbstractArray{Float64}, t_lim;
-    n_fac = 5,
-    verbose=true,
-    mapin = identity)
+    mapin = identity,
+    sense = :Max,
+    n_fac = 10, 
+    conv_tol = 1e-6,
+    verbosity = 1,
+    threads = false
+)
 
     n = n_fac*length(x0)
     pop = [mapin(randn(size(x0))) for i in 1:n]
 
-    popevolve(f, pop, t_lim; verbose=verbose, mapin=mapin)
+    popevolve(f, pop, t_lim; verbosity, mapin, sense, threads, conv_tol)
 
 end
 
 function popevolve(f::Function, pop::AbstractArray{Array{T,N},1}, t_lim;
-    verbose=true, mapin=identity) where {T,N}
+    mapin=identity,
+    sense = :Max,
+    conv_tol = 1e-6,
+    verbosity = 1,
+    threads = false    
+    ) where {T,N}
+
+    verbose = verbosity > 0
+
+    @assert sense==:Max || sense==:Min
+    if sense == :Max
+        bestimum = maximum
+        worstimum = minimum
+        argbest = argmax
+        comp = >=
+        sgn = -1
+    else
+        bestimum = minimum
+        worstimum = maximum
+        argbest = argmin
+        comp = <=
+        sgn = 1
+    end
 
 
     n = length(pop)
@@ -39,8 +77,6 @@ function popevolve(f::Function, pop::AbstractArray{Array{T,N},1}, t_lim;
     verbose && println("initial pop size $(n).")
 
     vals = f.(pop)
-
-    recs = []
 
     t0 = time()
 
@@ -50,35 +86,69 @@ function popevolve(f::Function, pop::AbstractArray{Array{T,N},1}, t_lim;
 
     its = 0
 
+    round = 0
+
     while (time() < t0 + t_lim)
         if time() > t1 + t_lim/9
             verbose && println("$(minimum(vals))")
             t1 = time()
         end
 
-        its += 1
+        round += 1
+        pe = randperm(n)
 
-        i = rand(1:n)
-        j = i
-        while j == i
-            j = rand(1:n)
+        if threads
+            Threads.@threads for k in pe
+                i = rand(1:n)
+                j = i
+                while j == i
+                    j = rand(1:n)
+                end
+
+                del = pop[i] - pop[j]
+                opt = optimize(t->sgn*f(mapin(pop[k] + t*del)), -2, 2, Brent(), iterations = 10)
+                t = opt.minimizer
+                bestval = sgn*opt.minimum
+                if comp(bestval, vals[k])
+                    vals[k] = bestval
+                    pop[k] = mapin(pop[k] + t*del)
+                end
+            end
+        else
+            for k in pe
+                i = rand(1:n)
+                j = i
+                while j == i
+                    j = rand(1:n)
+                end
+
+                del = pop[i] - pop[j]
+                opt = optimize(t->sgn*f(mapin(pop[k] + t*del)), -2, 2, Brent(), iterations = 10)
+                t = opt.minimizer
+                bestval = sgn*opt.minimum
+                if comp(bestval, vals[k])
+                    vals[k] = bestval
+                    pop[k] = mapin(pop[k] + t*del)
+                end
+            end
         end
-        k = rand(1:n)
 
-        del = pop[i] - pop[j]
-        opt = optimize(t->f(mapin(pop[k] + t*del)), -2, 2, Brent(), iterations = 10)
-        t = opt.minimizer
-        if opt.minimum < vals[k]
-            push!(recs, opt.minimum)
-            vals[k] = opt.minimum
-            pop[k] = mapin(pop[k] + t*del)
+        best = bestimum(vals)
+        worst = worstimum(vals)
+
+        if verbosity == 2
+            println("Round $(round): best: $(best), worst: $(worst).")
+        end
+
+        if abs(best - worst) < conv_tol
+            break
         end
     end
 
-    i = argmin(vals)
-    opt = (minimizer=pop[i], minimum=vals[i], pop=pop, recs=recs)
+    i = argbest(vals)
+    opt = (best=pop[i], bestval=vals[i], pop=pop)
 
-    verbose && println("final: $(vals[i]), after $(its) iterations.")
+    verbose && println("final: $(vals[i]), after $(round) rounds.")
 
     return opt
 

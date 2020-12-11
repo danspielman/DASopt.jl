@@ -46,6 +46,22 @@ function popevolve(f::Function, x0::AbstractArray{Float64}, t_lim;
 
 end
 
+const TRIES = [-2;-1;-0.5;0.5;1;2]
+
+function try6(f::Function, mapin, x0, del, comp)
+    bestt = TRIES[1]
+    bestval = f(mapin(x0 + bestt*del))
+    for i in 2:length(TRIES)
+        t = TRIES[i]
+        val = f(mapin(x0 + t*del))
+        if comp(bestval, val)
+            bestval = val
+            bestt = t
+        end
+    end
+    return bestt, bestval
+end
+
 function popevolve(f::Function, pop::AbstractArray{Array{T,N},1}, t_lim;
     mapin=identity,
     sense = :Max,
@@ -95,40 +111,49 @@ function popevolve(f::Function, pop::AbstractArray{Array{T,N},1}, t_lim;
         end
 
         round += 1
-        pe = randperm(n)
+
+        ip = randperm(n)
+        jp = randperm(n)
 
         if threads
-            Threads.@threads for k in pe
-                i = rand(1:n)
-                j = i
-                while j == i
-                    j = rand(1:n)
-                end
 
-                del = pop[i] - pop[j]
-                opt = optimize(t->sgn*f(mapin(pop[k] + t*del)), -2, 2, Brent(), iterations = 10)
-                t = opt.minimizer
-                bestval = sgn*opt.minimum
-                if comp(bestval, vals[k])
-                    vals[k] = bestval
-                    pop[k] = mapin(pop[k] + t*del)
+            Threads.@threads for k in 1:n
+                i = ip[k]
+                j = jp[k]
+                if i != j
+
+                    del = pop[i] - pop[j]
+
+                    # the following is faster, but not nearly as good, as brent's rule
+                    # need an efficient, non-allocating, linesearch
+                    # t, bestval = try6(f, mapin, pop[k], del, comp)
+                    
+                    opt = optimize(t->sgn*f(mapin(pop[k] + t*del)), -2, 2, Brent(), iterations = 10)
+                    t = opt.minimizer
+                    bestval = sgn*opt.minimum
+                    
+                    if comp(bestval, vals[k])
+                        vals[k] = bestval
+                        pop[k] = mapin(pop[k] + t*del)
+                    end
                 end
             end
         else
-            for k in pe
-                i = rand(1:n)
-                j = i
-                while j == i
-                    j = rand(1:n)
-                end
+            for k in 1:n
+                i = ip[k]
+                j = jp[k]
+                if i != j
 
-                del = pop[i] - pop[j]
-                opt = optimize(t->sgn*f(mapin(pop[k] + t*del)), -2, 2, Brent(), iterations = 10)
-                t = opt.minimizer
-                bestval = sgn*opt.minimum
-                if comp(bestval, vals[k])
-                    vals[k] = bestval
-                    pop[k] = mapin(pop[k] + t*del)
+                    del = pop[i] - pop[j]
+
+
+                    opt = optimize(t->sgn*f(mapin(pop[k] + t*del)), -2, 2, Brent(), iterations = 10)
+                    t = opt.minimizer
+                    bestval = sgn*opt.minimum
+                    if comp(bestval, vals[k])
+                        vals[k] = bestval
+                        pop[k] = mapin(pop[k] + t*del)
+                    end
                 end
             end
         end

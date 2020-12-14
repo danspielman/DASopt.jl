@@ -52,6 +52,8 @@ function gowin(f, pop, improver; mapin = identity,
 
     t0 = time()
 
+    pop = mapin.(pop)
+
     vals = f.(pop)
 
     while time() < t_stop && 
@@ -65,17 +67,19 @@ function gowin(f, pop, improver; mapin = identity,
         its += 1
 
         if serial
-            newpop = improver.(pop)
+            newpop = mapin.(improver.(pop))
             vals = f.(newpop)
         end
 
         if parallel
             newpop = pmap(improver,pop)
+            newpop = mapin.(newpop)
             vals = pmap(f,newpop)
         end
 
         if threads 
             newpop = ThreadsX.map(improver,pop)
+            newpop = mapin.(newpop)
             vals = ThreadsX.map(f,newpop)           
         end
         

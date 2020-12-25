@@ -15,7 +15,7 @@ include("Randline.jl")
 export randline
 
 include("optim_wrap.jl")
-export optim_wrap, optim_wrap_many
+export optim_wrap, optim_wrap_many, optim_tlim, EveryN, EveryTic
 
 include("GoWin.jl")
 export gowin

@@ -23,6 +23,7 @@ Generates and evolves a population of potential solutions to minimize the functi
 - `mapin`: a function to apply to map inputs into the domain
 - `conv_tol`: stop once all solutions are within this distance in function value
 - `threads`: if true use multithreading (not yet working)
+- `parallel`: if true use pmap. most useful when `f` is slow
 
 The return, opt, has a couple of fields:
 * best: the best solution
@@ -37,13 +38,15 @@ function popevolve(f::Function, x0::AbstractArray{Float64}, t_lim;
     n_fac = 10, 
     conv_tol = 1e-6,
     verbosity = 1,
-    threads = false
+    threads = false,
+    parallel = false
 )
+    @assert !(parallel && threads)
 
     n = n_fac*length(x0)
     pop = [mapin(randn(size(x0))) for i in 1:n]
 
-    popevolve(f, pop, t_lim; verbosity, mapin, sense, threads, conv_tol)
+    popevolve(f, pop, t_lim; verbosity, mapin, sense, threads, parallel, conv_tol)
 
 end
 
@@ -68,8 +71,16 @@ function popevolve(f::Function, pop::AbstractArray{Array{T,N},1}, t_lim;
     sense = :Max,
     conv_tol = 1e-6,
     verbosity = 1,
-    threads = false    
+    threads = false,
+    parallel = false    
     ) where {T,N}
+
+    @assert !(parallel && threads)
+
+    if parallel
+        return popevolve_par(f, pop, t_lim; 
+        mapin, sense, conv_tol, verbosity)
+    end
 
     verbose = verbosity > 0
 
@@ -101,9 +112,6 @@ function popevolve(f::Function, pop::AbstractArray{Array{T,N},1}, t_lim;
     verbose && println("initial best: $(minimum(vals))")
 
     t1 = time()
-
-    its = 0
-
     round = 0
 
     while (time() < t0 + t_lim)
@@ -185,6 +193,102 @@ function popevolve(f::Function, pop::AbstractArray{Array{T,N},1}, t_lim;
 
 end
 
+
+function popevolve_par(f::Function, pop::AbstractArray{Array{T,N},1}, t_lim;
+    mapin=identity,
+    sense = :Max,
+    conv_tol = 1e-6,
+    verbosity = 1
+    ) where {T,N}
+
+    verbose = verbosity > 0
+
+    @assert sense==:Max || sense==:Min
+    if sense == :Max
+        bestimum = maximum
+        worstimum = minimum
+        argbest = argmax
+        comp = >=
+        sgn = -1
+    else
+        bestimum = minimum
+        worstimum = maximum
+        argbest = argmin
+        comp = <=
+        sgn = 1
+    end
+
+    println("parallel")
+
+    subfun(x) = sgn*f(mapin(x))
+
+    n = length(pop)
+
+    verbose && println("initial pop size $(n).")
+
+    vals = pmap(f,pop)
+
+    t0 = time()
+
+    verbose && println("initial best: $(minimum(vals))")
+
+    t1 = time()
+
+    round = 0
+
+    while (time() < t0 + t_lim)
+        if time() > t1 + t_lim/9
+            verbose && println("Round $(round): $(bestimum(vals))")
+            t1 = time()
+        end
+
+        round += 1
+
+        ip = randperm(n)
+        jp = randperm(n)
+
+        dels = [pop[ip[k]] - pop[jp[k]] for k in 1:n]
+
+        pairs = pmap(zip(pop,dels)) do (p,del)
+            if norm(del) < 1e-15
+               return p, f(mapin(p)) 
+            else
+                
+                opt = optimize(t->sgn*f(mapin(p + t*del)), -2, 2, Brent(), iterations = 10)
+                t = opt.minimizer
+
+                p = mapin(p + t*del)  
+
+                bestval = sgn*opt.minimum
+
+                return p, bestval
+            end
+        end
+
+        pop = [pair[1] for pair in pairs]
+        vals = [pair[2] for pair in pairs]
+
+        best = bestimum(vals)
+        worst = worstimum(vals)
+
+        if verbosity == 2
+            println("Round $(round): best: $(best), worst: $(worst).")
+        end
+
+        if abs(best - worst) < conv_tol
+            break
+        end
+    end
+
+    i = argbest(vals)
+    opt = (best=pop[i], bestval=vals[i], pop=pop, rounds=round, secs=time()-t0)
+    verbose && println("final: $(vals[i]), after $(round) rounds.")
+    return opt
+
+end
+
+
+
 """
     opt = popnm(f, pop, t_lim; mapin = identity,
         sense = :Min,
@@ -245,9 +349,6 @@ function popnm(f::Function, pop::AbstractArray{Array{T,N},1}, t_lim;
     verbose && println("initial best: $(minimum(vals))")
 
     t1 = time()
-
-    its = 0
-
     round = 0
 
     counter = EveryN(n)

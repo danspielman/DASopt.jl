@@ -28,6 +28,7 @@ The return, opt, has a couple of fields:
 * best: the best solution
 * bestval: the value of it
 * pop: the population at the end
+* 
 
 """
 function popevolve(f::Function, x0::AbstractArray{Float64}, t_lim;
@@ -87,6 +88,7 @@ function popevolve(f::Function, pop::AbstractArray{Array{T,N},1}, t_lim;
         sgn = 1
     end
 
+    subfun(x) = sgn*f(mapin(x))
 
     n = length(pop)
 
@@ -106,7 +108,7 @@ function popevolve(f::Function, pop::AbstractArray{Array{T,N},1}, t_lim;
 
     while (time() < t0 + t_lim)
         if time() > t1 + t_lim/9
-            verbose && println("$(minimum(vals))")
+            verbose && println("Round $(round): $(bestimum(vals))")
             t1 = time()
         end
 
@@ -132,9 +134,13 @@ function popevolve(f::Function, pop::AbstractArray{Array{T,N},1}, t_lim;
                     t = opt.minimizer
                     bestval = sgn*opt.minimum
                     
+                    # t = golden2(subfun, pop[k], del, -2, 2, 5)
+                    #bestval = f(mapin(pop[k] + t*del))
+                    #bestval = sgn*opt.minimum
+                    
                     if comp(bestval, vals[k])
                         vals[k] = bestval
-                        pop[k] = mapin(pop[k] + t*del)
+                        pop[k] = mapin(pop[k] + t*del)  
                     end
                 end
             end
@@ -168,6 +174,125 @@ function popevolve(f::Function, pop::AbstractArray{Array{T,N},1}, t_lim;
         if abs(best - worst) < conv_tol
             break
         end
+    end
+
+    i = argbest(vals)
+    opt = (best=pop[i], bestval=vals[i], pop=pop, rounds=round, secs=time()-t0)
+
+    verbose && println("final: $(vals[i]), after $(round) rounds.")
+
+    return opt
+
+end
+
+"""
+    opt = popnm(f, pop, t_lim; mapin = identity,
+        sense = :Min,
+        conv_tol = 1e-6,
+        verbosity = 1,
+        threads = false
+    )
+
+Generates and evolves a population of potential solutions to minimize the function f.
+Following an approach like NelderMead, but with random choices.
+Recoomend pop size to be 2*dimension.
+
+# Arguments
+- `pop' is just the initial population.
+- `t_lim`: un upper bound on the number of seconds for which to run
+- `sense`: either `:Max` or `:Min`, default is `:Min`
+- `mapin`: a function to apply to map inputs into the domain
+- `conv_tol`: stop once all solutions are within this distance in function value
+
+The return, opt, has a couple of fields:
+* best: the best solution
+* bestval: the value of it
+* pop: the population at the end
+
+"""
+function popnm(f::Function, pop::AbstractArray{Array{T,N},1}, t_lim;
+    mapin=identity,
+    sense = :Min,
+    conv_tol = 1e-6,
+    verbosity = 1
+    ) where {T,N}
+
+    verbose = verbosity > 0
+
+    @assert sense==:Max || sense==:Min
+    if sense == :Max
+        bestimum = maximum
+        worstimum = minimum
+        argbest = argmax
+        comp = >=
+        sgn = -1
+    else
+        bestimum = minimum
+        worstimum = maximum
+        argbest = argmin
+        comp = <=
+        sgn = 1
+    end
+
+    subfun(x) = sgn*f(mapin(x))
+
+    n = length(pop)
+
+    vals = f.(pop)
+
+    t0 = time()
+
+    verbose && println("initial best: $(minimum(vals))")
+
+    t1 = time()
+
+    its = 0
+
+    round = 0
+
+    counter = EveryN(n)
+
+    while (time() < t0 + t_lim)
+        if time() > t1 + t_lim/9
+            verbose && println("Round $(round): $(bestimum(vals))")
+            t1 = time()
+        end
+
+        center = mean(pop)
+        
+
+        k = rand(1:n)
+
+        del = center - pop[k] 
+
+        opt1 = optimize(t->sgn*f(mapin(pop[k] + t*del)), 1.5, 3, Brent(), iterations = 5)
+        opt2 = optimize(t->sgn*f(mapin(pop[k] + t*del)), -1, -0.5, Brent(), iterations = 5)
+        
+        opt = comp(sgn*opt1.minimum, sgn*opt2.minimum) ? opt1 : opt2
+        
+        t = opt.minimizer
+        bestval = sgn*opt.minimum
+        if comp(bestval, vals[k])
+            #=
+            @show k, t, vals[k], bestval
+            @show f(center), mean(vals)
+            =#
+            vals[k] = bestval
+            pop[k] = mapin(pop[k] + t*del)
+        end
+
+        best = bestimum(vals)
+        worst = worstimum(vals)
+
+        if verbosity == 2 && counter() == 1
+            println("Iteration $(round): best: $(best), worst: $(worst).")
+        end
+
+        if abs(best - worst) < conv_tol
+            break
+        end
+
+        round += 1
     end
 
     i = argbest(vals)

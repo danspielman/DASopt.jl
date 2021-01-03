@@ -256,10 +256,15 @@ function popevolve_par(f::Function, pop::AbstractArray{Array{T,N},1}, t_lim;
                 
                 opt = optimize(t->sgn*f(mapin(p + t*del)), -2, 2, Brent(), iterations = 10)
                 t = opt.minimizer
-
-                p = mapin(p + t*del)  
-
                 bestval = sgn*opt.minimum
+
+                default = f(mapin(p))
+
+                if comp(bestval, default)
+                    p = mapin(p + t*del)  
+                else
+                    bestval = default
+                end
 
                 return p, bestval
             end

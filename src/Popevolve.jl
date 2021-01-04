@@ -24,6 +24,7 @@ Generates and evolves a population of potential solutions to minimize the functi
 - `conv_tol`: stop once all solutions are within this distance in function value
 - `threads`: if true use multithreading (not yet working)
 - `parallel`: if true use pmap. most useful when `f` is slow
+- `randline`: if not infinite, will search in a random direction every randline steps, instead of the DE one.
 
 The return, opt, has a couple of fields:
 * best: the best solution
@@ -39,14 +40,15 @@ function popevolve(f::Function, x0::AbstractArray{Float64}, t_lim;
     conv_tol = 1e-6,
     verbosity = 1,
     threads = false,
-    parallel = false
+    parallel = false,
+    randline = Inf
 )
     @assert !(parallel && threads)
 
     n = n_fac*length(x0)
     pop = [mapin(randn(size(x0))) for i in 1:n]
 
-    popevolve(f, pop, t_lim; verbosity, mapin, sense, threads, parallel, conv_tol)
+    popevolve(f, pop, t_lim; verbosity, mapin, sense, threads, parallel, conv_tol, randline)
 
 end
 
@@ -72,14 +74,15 @@ function popevolve(f::Function, pop::AbstractArray{Array{T,N},1}, t_lim;
     conv_tol = 1e-6,
     verbosity = 1,
     threads = false,
-    parallel = false    
+    parallel = false,
+    randline = Inf    
     ) where {T,N}
 
     @assert !(parallel && threads)
 
     if parallel
         return popevolve_par(f, pop, t_lim; 
-        mapin, sense, conv_tol, verbosity)
+        mapin, sense, conv_tol, randline, verbosity)
     end
 
     verbose = verbosity > 0
@@ -198,7 +201,8 @@ function popevolve_par(f::Function, pop::AbstractArray{Array{T,N},1}, t_lim;
     mapin=identity,
     sense = :Max,
     conv_tol = 1e-6,
-    verbosity = 1
+    verbosity = 1,
+    randline = Inf
     ) where {T,N}
 
     verbose = verbosity > 0
@@ -257,6 +261,11 @@ function popevolve_par(f::Function, pop::AbstractArray{Array{T,N},1}, t_lim;
         jp = randperm(n)
 
         dels = [pop[ip[k]] - pop[jp[k]] for k in 1:n]
+
+        if iszero(mod(round, randline))
+            verbosity == 2 && println("Random direction")
+            dels = [(de = randn(size(x)); de*norm(x)/norm(de)) for x in dels]
+        end
 
         pairs = pmap(zip(pop,dels)) do (p,del)
             if norm(del) < 1e-15

@@ -229,7 +229,7 @@ function popevolve_par(f::Function, pop::AbstractArray{Array{T,N},1}, t_lim;
     verbose && println("initial pop size $(n).")
 
     #vals = pmap(f,pop)
-    vals = pmap(pop) do d
+    vals = pmap(pop) do p
         try 
             f(p)
         catch jnk

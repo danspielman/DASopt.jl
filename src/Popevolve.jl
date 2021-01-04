@@ -210,15 +210,17 @@ function popevolve_par(f::Function, pop::AbstractArray{Array{T,N},1}, t_lim;
         argbest = argmax
         comp = >=
         sgn = -1
+        senseInf = -Inf
     else
         bestimum = minimum
         worstimum = maximum
         argbest = argmin
         comp = <=
         sgn = 1
+        senseInf = Inf
     end
 
-    println("parallel")
+    println("dev2 parallel")
 
     subfun(x) = sgn*f(mapin(x))
 
@@ -226,11 +228,18 @@ function popevolve_par(f::Function, pop::AbstractArray{Array{T,N},1}, t_lim;
 
     verbose && println("initial pop size $(n).")
 
-    vals = pmap(f,pop)
+    #vals = pmap(f,pop)
+    vals = pmap(pop) do d
+        try 
+            f(p)
+        catch jnk
+            senseInf
+        end
+    end
 
     t0 = time()
 
-    verbose && println("initial best: $(minimum(vals))")
+    verbose && println("initial best: $(bestimum(vals))")
 
     t1 = time()
 
@@ -253,33 +262,43 @@ function popevolve_par(f::Function, pop::AbstractArray{Array{T,N},1}, t_lim;
             if norm(del) < 1e-15
                return p, f(mapin(p)) 
             else
-                worked = true
                 bestval = NaN
+                t = 0.0
+
                 try
                     opt = optimize(t->sgn*f(mapin(p + t*del)), -2, 2, Brent(), iterations = 10)
 
                     t = opt.minimizer
                     bestval = sgn*opt.minimum
 
+                    default = f(mapin(p))
+
+                    if comp(bestval, default)
+                        p = mapin(p + t*del)  
+                    else
+                        bestval = default
+                    end
+    
                 catch err
                     println(err)
-                    worked = false
-                end
-
-                default = f(mapin(p))
-
-                if worked && comp(bestval, default)
-                    p = mapin(p + t*del)  
-                else
-                    bestval = default
                 end
 
                 return p, bestval
             end
         end
 
-        pop = [pair[1] for pair in pairs]
-        vals = [pair[2] for pair in pairs]
+        new_vals = [pair[2] for pair in pairs]
+
+        ind = isfinite.(new_vals)
+        vals[ind] .= new_vals[ind]
+        for i in 1:n
+            if ind[i]
+                pop[i] = pairs[i][1]
+            end
+        end
+
+        #pop = [pair[1] for pair in pairs]
+        #vals = [pair[2] for pair in pairs]
 
         best = bestimum(vals)
         worst = worstimum(vals)

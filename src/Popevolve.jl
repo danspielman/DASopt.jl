@@ -253,14 +253,22 @@ function popevolve_par(f::Function, pop::AbstractArray{Array{T,N},1}, t_lim;
             if norm(del) < 1e-15
                return p, f(mapin(p)) 
             else
-                
-                opt = optimize(t->sgn*f(mapin(p + t*del)), -2, 2, Brent(), iterations = 10)
-                t = opt.minimizer
-                bestval = sgn*opt.minimum
+                worked = true
+                bestval = NaN
+                try
+                    opt = optimize(t->sgn*f(mapin(p + t*del)), -2, 2, Brent(), iterations = 10)
+
+                    t = opt.minimizer
+                    bestval = sgn*opt.minimum
+
+                catch err
+                    println(err)
+                    worked = false
+                end
 
                 default = f(mapin(p))
 
-                if comp(bestval, default)
+                if worked && comp(bestval, default)
                     p = mapin(p + t*del)  
                 else
                     bestval = default

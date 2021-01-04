@@ -100,3 +100,51 @@ function randline(f::Function, x0, mapin;
 
 end
 
+const golden_ratio = (sqrt(5) + 1) / 2
+
+"""
+    x = golden(f, a, b, its)
+
+Minimum of f between a and b. Runs for a fixed number of iterations, `its`.
+"""
+function golden(f, a, b, its)
+    
+    it = 0
+    
+    while it < its
+        
+        c = b - (b - a) / golden_ratio
+        d = a + (b - a) / golden_ratio
+        
+        it += 1
+        if f(c) < f(d)
+            b = d
+        else
+            a = c
+        end
+    
+    end
+    
+    return (a+b)/2
+end
+
+function golden2(f, x0, del, a, b, its)
+    
+    it = 0
+    
+    while it < its
+        
+        c = b - (b - a) / golden_ratio
+        d = a + (b - a) / golden_ratio
+        
+        it += 1
+        if f(x0 + c*del) < f(x0 + d*del)
+            b = d
+        else
+            a = c
+        end
+    
+    end
+    
+    return (a+b)/2
+end

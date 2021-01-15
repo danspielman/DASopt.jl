@@ -114,7 +114,8 @@ function popevolve(f::Function, pop::AbstractArray{Array{T,N},1}, t_lim;
 
     t0 = time()
 
-    verbose && println("initial best: $(minimum(vals))")
+    bestval = bestimum(vals)
+    verbose && println("initial best: $(bestval)")
 
     t1 = time()
     round = 0
@@ -177,7 +178,7 @@ function popevolve(f::Function, pop::AbstractArray{Array{T,N},1}, t_lim;
             end
         end
 
-        best = bestimum(vals)
+        bestval = best = bestimum(vals)
         worst = worstimum(vals)
 
         if verbosity == 2
@@ -246,7 +247,8 @@ function popevolve_par(f::Function, pop::AbstractArray{Array{T,N},1}, t_lim;
 
     t0 = time()
 
-    verbose && println("initial best: $(bestimum(vals))")
+    bestval = bestimum(vals)
+    verbose && println("initial best: $(bestval)")
 
     t1 = time()
 
@@ -312,7 +314,7 @@ function popevolve_par(f::Function, pop::AbstractArray{Array{T,N},1}, t_lim;
         #pop = [pair[1] for pair in pairs]
         #vals = [pair[2] for pair in pairs]
 
-        best = bestimum(vals)
+        bestval = best = bestimum(vals)
         worst = worstimum(vals)
 
         if verbosity == 2

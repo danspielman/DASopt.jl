@@ -41,14 +41,15 @@ function popevolve(f::Function, x0::AbstractArray{Float64}, t_lim;
     verbosity = 1,
     threads = false,
     parallel = false,
-    randline = Inf
+    randline = Inf,
+    stop_val = sense == :Max ? Inf : -Inf
 )
     @assert !(parallel && threads)
 
     n = n_fac*length(x0)
     pop = [mapin(randn(size(x0))) for i in 1:n]
 
-    popevolve(f, pop, t_lim; verbosity, mapin, sense, threads, parallel, conv_tol, randline)
+    popevolve(f, pop, t_lim; verbosity, mapin, sense, threads, parallel, conv_tol, randline, stop_val)
 
 end
 
@@ -75,14 +76,15 @@ function popevolve(f::Function, pop::AbstractArray{Array{T,N},1}, t_lim;
     verbosity = 1,
     threads = false,
     parallel = false,
-    randline = Inf    
+    randline = Inf,
+    stop_val = sense == :Max ? Inf : -Inf
     ) where {T,N}
 
     @assert !(parallel && threads)
 
     if parallel
         return popevolve_par(f, pop, t_lim; 
-        mapin, sense, conv_tol, randline, verbosity)
+        mapin, sense, conv_tol, randline, verbosity, stop_val)
     end
 
     verbose = verbosity > 0
@@ -117,7 +119,7 @@ function popevolve(f::Function, pop::AbstractArray{Array{T,N},1}, t_lim;
     t1 = time()
     round = 0
 
-    while (time() < t0 + t_lim)
+    while time() < t0 + t_lim && comp(stop_val, bestval)
         if time() > t1 + t_lim/9
             verbose && println("Round $(round): $(bestimum(vals))")
             t1 = time()
@@ -202,7 +204,8 @@ function popevolve_par(f::Function, pop::AbstractArray{Array{T,N},1}, t_lim;
     sense = :Max,
     conv_tol = 1e-6,
     verbosity = 1,
-    randline = Inf
+    randline = Inf,
+    stop_val = sense == :Max ? Inf : -Inf
     ) where {T,N}
 
     verbose = verbosity > 0
@@ -249,7 +252,7 @@ function popevolve_par(f::Function, pop::AbstractArray{Array{T,N},1}, t_lim;
 
     round = 0
 
-    while (time() < t0 + t_lim)
+    while (time() < t0 + t_lim && comp(stop_val, bestval))
         if time() > t1 + t_lim/9
             verbose && println("Round $(round): $(bestimum(vals))")
             t1 = time()

@@ -55,6 +55,22 @@ function gowin(f, pop, improver; mapin = identity,
     pop = mapin.(pop)
 
     vals = f.(pop)
+    newpop = copy(pop)
+
+    function improve(p, v)
+        newi = mapin(improver(p))
+        vi = f(newi)
+        
+        if !comp(vi, v) 
+            # recompute original
+            vorig = f(p)
+            if !comp(vi, vorig)
+                vi = vorig
+                newi = p
+            end
+        end   
+        return newi, vi 
+    end
 
     while time() < t_stop && 
         its < n_rounds &&
@@ -67,22 +83,27 @@ function gowin(f, pop, improver; mapin = identity,
         its += 1
 
         if serial
-            newpop = mapin.(improver.(pop))
-            vals = f.(newpop)
+            news = map(zip(pop,vals)) do (p,v)
+                improve(p,v)
+            end
+            #newpop = mapin.(improver.(pop))
+            #vals = f.(newpop)
         end
 
         if parallel
-            newpop = pmap(improver,pop)
-            newpop = mapin.(newpop)
-            vals = pmap(f,newpop)
-        end
-
-        if threads 
-            newpop = ThreadsX.map(improver,pop)
-            newpop = mapin.(newpop)
-            vals = ThreadsX.map(f,newpop)           
+            news = map(zip(pop,vals)) do (p,v)
+                improve(p,v)
+            end
         end
         
+        if threads # need to make this work with improvei
+            news = ThreadsX.map(zip(pop,vals)) do (p,v)
+                improve(p,v)
+            end      
+        end
+        
+        vals = [new[2] for new in news]
+        newpop = [new[1] for new in news] 
 
         med = median(vals)
 

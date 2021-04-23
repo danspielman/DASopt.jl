@@ -91,7 +91,7 @@ function gowin(f, pop, improver; mapin = identity,
         end
 
         if parallel
-            news = map(zip(pop,vals)) do (p,v)
+            news = pmap(zip(pop,vals)) do (p,v)
                 improve(p,v)
             end
         end

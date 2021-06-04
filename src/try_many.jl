@@ -19,8 +19,9 @@ The rest are optional:
 - `stop_val`: will stop as soon as find a value better than this
 - `file_base`: if this is non-empty, then output will be saved to `\$(file_base).txt` and `\$(file_base).jld`.
 - `verbosity::Integer`: if 0, should be no output.
-    1, will output just the best so far each time a new one is found.
-    2, will output everything.
+    1, will just output a summary at the end
+    2, will output just the best so far each time a new one is found.
+    3, will output everything.
 - `seed::Bool`: if negative, nothing happens.  Otherwise, seed the ith trial with the ith random seed.
 - `local_rng::Bool`: if true, gen() should take a RNG as input, and it will be seeded as suggested by `seed`.
   This prevents the generator for instances from intefering with any generator the algorithm might use.
@@ -43,7 +44,7 @@ Like try_many, but func returns (x, val), where x has been transformed.
 function try_many_trans(func::Function, gen::Function, sense::Symbol; n_tries = Inf, t_lim = Inf,
     file_base = "",
     verbose = false,
-    verbosity = 1 + verbose,
+    verbosity = 1 + 2*verbose,
     seed = false,
     local_rng = false,
     par_batch = 0,
@@ -131,11 +132,11 @@ function try_many_trans(func::Function, gen::Function, sense::Symbol; n_tries = 
             bestval = val
             bestx = x
             push!(bests,x)
-            if verbosity > 0
+            if verbosity >= 2
 		        report(i, val, bestx, txt_file)
             end
             !isempty(file_base) && save(jld_file, "bests", bests)
-        elseif verbosity > 1
+        elseif verbosity > 2
             println("iteration: $(i), val: $(val)")
         end
 
@@ -153,7 +154,7 @@ Report iteration `i`, value `val`, vector that achieved it `x`
 to text file, if it exists.  o/w just print.
 """
 function report(i, val, x, txt_file)
-    println("iteration $(i): value: $(val), at $(now())")
+    println("iteration $(i): value: $(val), at $(stringnow())")
     println(x)
     println()
 
@@ -170,7 +171,7 @@ end
 function info_to_file(txt_file)
     if ~isempty(txt_file)
         fh = open(txt_file,"a")
-        println(fh,"Called from: $(PROGRAM_FILE) at $(now())")
+        println(fh,"Called from: $(PROGRAM_FILE) at $(stringnow())")
         println(fh)
         close(fh)
     end

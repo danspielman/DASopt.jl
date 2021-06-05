@@ -13,12 +13,15 @@ There are long docstrings for the main functions:
 
 You can view them in Julia by typing things like `?try_many`.
 
-To generate more detailed documentation, that you can then view on your own machine,
-go to the `docs` directory, with is probably under `~/.julia/packages/DASopt/junk/docs`, 
-where "junk" is a hash so you should just go to the most recent directory,
-and when you are there type `julia make.jl`.
-This will put docs into a `build` directory.
-Open `index.html` in your browser, and bookmark it.
+The documentation should be automatically generated when you add the package. The root of the documentation can be found by typing
+~~~
+using DASopt
+println(DASopt.docsdir())
+~~~
+This will return the index page for the documentation.
+I suggest you open it in a browser, and bookmark it.
+
+Please improve the documentation!
 
 
 

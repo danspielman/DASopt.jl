@@ -228,8 +228,6 @@ function popevolve_par(f::Function, pop::AbstractArray{Array{T,N},1}, t_lim;
         senseInf = Inf
     end
 
-    println("dev2 parallel")
-
     subfun(x) = sgn*f(mapin(x))
 
     n = length(pop)

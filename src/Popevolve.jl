@@ -192,7 +192,7 @@ function popevolve(f::Function, pop::AbstractArray{Array{T,N},1}, t_lim;
     i = argbest(vals)
     opt = (best=pop[i], bestval=vals[i], pop=pop, rounds=round, secs=time()-t0)
 
-    verbosity > 0 && println("final: $(vals[i]), after $(round) rounds and $(secs) seconds.")
+    verbosity > 0 && println("final: $(vals[i]), after $(round) rounds and $(time()-t0) seconds.")
 
     return opt
 
@@ -323,7 +323,7 @@ function popevolve_par(f::Function, pop::AbstractArray{Array{T,N},1}, t_lim;
 
     i = argbest(vals)
     opt = (best=pop[i], bestval=vals[i], pop=pop, rounds=round, secs=time()-t0)
-    verbosity > 0 && println("final: $(vals[i]), after $(round) rounds and $(secs) seconds.")
+    verbosity > 0 && println("final: $(vals[i]), after $(round) rounds and $(time()-t0) seconds.")
 
     return opt
 

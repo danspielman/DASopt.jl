@@ -25,6 +25,7 @@ Generates and evolves a population of potential solutions to minimize the functi
 - `threads`: if true use multithreading (not yet working)
 - `parallel`: if true use pmap. most useful when `f` is slow
 - `randline`: if not infinite, will search in a random direction every randline steps, instead of the DE one.
+- `stop_val`: stop if get a value better than this
 
 The return, opt, has a couple of fields:
 * best: the best solution
@@ -87,8 +88,6 @@ function popevolve(f::Function, pop::AbstractArray{Array{T,N},1}, t_lim;
         mapin, sense, conv_tol, randline, verbosity, stop_val)
     end
 
-    verbose = verbosity > 0
-
     @assert sense==:Max || sense==:Min
     if sense == :Max
         bestimum = maximum
@@ -108,21 +107,21 @@ function popevolve(f::Function, pop::AbstractArray{Array{T,N},1}, t_lim;
 
     n = length(pop)
 
-    verbose && println("initial pop size $(n).")
+    verbosity > 1 && println("initial pop size $(n).")
 
     vals = f.(pop)
 
     t0 = time()
 
     bestval = bestimum(vals)
-    verbose && println("initial best: $(bestval)")
+    verbosity > 1  && println("initial best: $(bestval)")
 
     t1 = time()
     round = 0
 
     while time() < t0 + t_lim && comp(stop_val, bestval)
         if time() > t1 + t_lim/9
-            verbose && println("Round $(round): $(bestimum(vals))")
+            verbosity > 1 && println("Round $(round): $(bestimum(vals))")
             t1 = time()
         end
 
@@ -181,7 +180,7 @@ function popevolve(f::Function, pop::AbstractArray{Array{T,N},1}, t_lim;
         bestval = best = bestimum(vals)
         worst = worstimum(vals)
 
-        if verbosity == 2
+        if verbosity == 3
             println("Round $(round): best: $(best), worst: $(worst).")
         end
 
@@ -193,7 +192,7 @@ function popevolve(f::Function, pop::AbstractArray{Array{T,N},1}, t_lim;
     i = argbest(vals)
     opt = (best=pop[i], bestval=vals[i], pop=pop, rounds=round, secs=time()-t0)
 
-    verbose && println("final: $(vals[i]), after $(round) rounds.")
+    verbosity > 0 && println("final: $(vals[i]), after $(round) rounds and $(secs) seconds.")
 
     return opt
 
@@ -208,8 +207,6 @@ function popevolve_par(f::Function, pop::AbstractArray{Array{T,N},1}, t_lim;
     randline = Inf,
     stop_val = sense == :Max ? Inf : -Inf
     ) where {T,N}
-
-    verbose = verbosity > 0
 
     @assert sense==:Max || sense==:Min
     if sense == :Max
@@ -232,7 +229,7 @@ function popevolve_par(f::Function, pop::AbstractArray{Array{T,N},1}, t_lim;
 
     n = length(pop)
 
-    verbose && println("initial pop size $(n).")
+    verbosity > 1 && println("initial pop size $(n).")
 
     #vals = pmap(f,pop)
     vals = pmap(pop) do p
@@ -246,7 +243,7 @@ function popevolve_par(f::Function, pop::AbstractArray{Array{T,N},1}, t_lim;
     t0 = time()
 
     bestval = bestimum(vals)
-    verbose && println("initial best: $(bestval)")
+    verbosity > 1 && println("initial best: $(bestval)")
 
     t1 = time()
 
@@ -254,7 +251,7 @@ function popevolve_par(f::Function, pop::AbstractArray{Array{T,N},1}, t_lim;
 
     while (time() < t0 + t_lim && comp(stop_val, bestval))
         if time() > t1 + t_lim/9
-            verbose && println("Round $(round): $(bestimum(vals))")
+            verbosity > 1 && println("Round $(round): $(bestimum(vals))")
             t1 = time()
         end
 
@@ -266,7 +263,7 @@ function popevolve_par(f::Function, pop::AbstractArray{Array{T,N},1}, t_lim;
         dels = [pop[ip[k]] - pop[jp[k]] for k in 1:n]
 
         if iszero(mod(round, randline))
-            verbosity == 2 && println("Random direction")
+            verbosity == 3 && println("Random direction")
             dels = [(de = randn(size(x)); de*norm(x)/norm(de)) for x in dels]
         end
 
@@ -315,7 +312,7 @@ function popevolve_par(f::Function, pop::AbstractArray{Array{T,N},1}, t_lim;
         bestval = best = bestimum(vals)
         worst = worstimum(vals)
 
-        if verbosity == 2
+        if verbosity == 3
             println("Round $(round): best: $(best), worst: $(worst).")
         end
 
@@ -326,7 +323,8 @@ function popevolve_par(f::Function, pop::AbstractArray{Array{T,N},1}, t_lim;
 
     i = argbest(vals)
     opt = (best=pop[i], bestval=vals[i], pop=pop, rounds=round, secs=time()-t0)
-    verbose && println("final: $(vals[i]), after $(round) rounds.")
+    verbosity > 0 && println("final: $(vals[i]), after $(round) rounds and $(secs) seconds.")
+
     return opt
 
 end

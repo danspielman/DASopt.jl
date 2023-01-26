@@ -5,6 +5,9 @@ using LinearAlgebra, Statistics
 
 include("util.jl")
 
+include("Record.jl")
+export Record
+
 include("try_many.jl")
 export try_many, try_many_trans
 
@@ -19,4 +22,8 @@ export optim_wrap, optim_wrap_many, optim_tlim, EveryN, EveryTic
 
 include("GoWin.jl")
 export gowin
+
+include("dastest.jl")
+export dastest
+
 end

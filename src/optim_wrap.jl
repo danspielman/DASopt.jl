@@ -92,12 +92,13 @@ optim_wrap(sense::typeof(max), args...; kwargs...) = optim_wrap(:Max, args...; k
 #=
 The following is the old interface, which the new interface calls.
 =#
-function optim_wrap(f, x0::Array, mapin=identity;
+function optim_wrap(f::Function, x0::Array, mapin=identity;
     nrounds=3,
     optfunc=NelderMead(),
     sense = :Max,
     options = Optim.Options(),
-    autodiff = :finite)
+    autodiff = :finite,
+    n_starts = 0)
 
     @assert sense==:Max || sense==:Min
 
@@ -124,7 +125,7 @@ function optim_wrap(f, x0::Array, mapin=identity;
     return val, x0
 end
 
-function optim_wrap(f, gen::Function, mapin=identity;
+function optim_wrap(f::Function, gen::Function, mapin=identity;
     nrounds=3,
     optfunc=NelderMead(),
     sense = :Max,

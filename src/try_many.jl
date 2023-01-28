@@ -225,6 +225,7 @@ function report(i, val, x, txt_file)
     end
 end
 
+report(i, tup::Tuple, txt_file) = report(i, first_number(tup), tup, txt_file)
 
 function info_to_file(txt_file)
     if ~isempty(txt_file)

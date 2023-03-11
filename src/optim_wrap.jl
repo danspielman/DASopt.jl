@@ -58,8 +58,14 @@ function optim_wrap(sense::Symbol, obj::Function, gen, mapin=identity;
     par_batch = 0,
     threads = 0,
     record = Record(),
-    stop_val = sense == :Max ? Inf : -Inf)
+    stop_val = (sense == :Max || sense == :max) ? Inf : -Inf)
     
+    if sense == :max 
+        sense = :Max
+    end
+    if sense == :min
+        sense = :Min
+    end
 
     if t_lim == Inf && n_tries == Inf
 
@@ -84,8 +90,8 @@ function optim_wrap(sense::Symbol, obj::Function, gen, mapin=identity;
 
 end
 
-optim_wrap(sense::typeof(min), args...; kwargs...) = optim_wrap(:Min, args...; kwargs...)
-optim_wrap(sense::typeof(max), args...; kwargs...) = optim_wrap(:Max, args...; kwargs...)
+optim_wrap(sense::typeof(min), obj::Function, args...; kwargs...) = optim_wrap(:Min, obj, args...; kwargs...)
+optim_wrap(sense::typeof(max), obj::Function, args...; kwargs...) = optim_wrap(:Max, obj, args...; kwargs...)
 
 
 
@@ -170,7 +176,7 @@ function optim_wrap_many(f::Function, gen::Function, mapin=identity;  n_tries = 
     par_batch = 0,
     threads = 0,
     record = Record(),
-    stop_val = sense == :Max ? Inf : -Inf)
+    stop_val = (sense == :Max || sense == :max) ? Inf : -Inf)
 
     if t_lim < Inf
         tdo = Dict(fn=>getfield(options, fn) for fn ∈ fieldnames(typeof(options)))

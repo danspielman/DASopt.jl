@@ -7,6 +7,12 @@ I make no guarantees about the correctness, robustness, or suitability of this c
 Some of the functions are very old, and might not work with current Julia packages.
 It is merely something that I and some of my group find useful.
 
+To install, while in Julia, type `]` to get to the package prompt, and then
+~~~
+add https://github.com/danspielman/DASopt.jl
+~~~
+
+
 **Warning**: with this version, we swap the order of outputs. We now give the value before the vector. This change was made on Jan 25, 2023.
 
 Reporting options from the code require FileIO and JLD.

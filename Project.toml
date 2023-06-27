@@ -18,6 +18,7 @@ ThreadsX = "ac1d9e8a-700a-412c-b207-f0111f4b6c0d"
 
 [compat]
 Documenter = "0.26"
+JLD = "0.13"
 Optim = "1"
 julia = "1"
 

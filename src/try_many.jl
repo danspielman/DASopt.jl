@@ -44,7 +44,7 @@ function try_many(sense::Symbol, obj::Function, gen::Function;
     par_batch = 0,
     threads = 0,
     record = Record(),
-    stop_val = sense == :Max ? Inf : -Inf)
+    stop_val = (sense == :Max || sense == :max) ? Inf : -Inf)
 
     if n_tries == Inf && t_lim == Inf
         @warn "One of n_tries or t_lim should be set. Running just once to be safe."
@@ -225,6 +225,7 @@ function report(i, val, x, txt_file)
     end
 end
 
+report(i, tup::Tuple, txt_file) = report(i, first_number(tup), tup, txt_file)
 
 function info_to_file(txt_file)
     if ~isempty(txt_file)

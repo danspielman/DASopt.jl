@@ -289,10 +289,13 @@ function optim_wrap_tlim1(sense, f::Function, gen::Function, mapin=identity; t_l
             println("iteration: $(i), val: $(val)")
         end
     end
-        
-    verbosity > 0 && println("ran for $(i) iterations and $(time()-t0) seconds")
 
-    return bestval, besta
+    if verbosity > 0
+        println("$(besta[2])")
+        println("ran for $(i) iterations and $(time()-t0) seconds. Val: $(besta[1])")
+    end
+
+    return besta
 end
 
 """

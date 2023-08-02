@@ -9,7 +9,7 @@
     par_batch = 0,
     threads = 0,
     record = Record(),
-    stop_val = Inf for -Inf depending on sense)
+    stop_val = Inf or -Inf depending on sense)
 
 A wrapper for `Optim`.  
 Adds a few features that I find helpful, especially when I want to optimize over a manifold or odd parameter space.
@@ -196,7 +196,151 @@ function optim_wrap_many(f::Function, gen::Function, mapin=identity;  n_tries = 
         threads = threads,
         stop_val = stop_val,
         record = record)
+end
 
+
+"""
+An optim wraper that runs for t_lim on one core.
+It is based on optim_wrap_many and try_many_trans.
+The reason is is not inside of those is that it violates the abstraction of
+try_many_trans by updating the time left for Optim at each call.
+"""
+function optim_wrap_tlim1(sense, f::Function, gen::Function, mapin=identity; t_lim = 0,
+    file_base = "",
+    verbose = false,
+    verbosity = 1 + verbose,
+    seed = false,
+    nrounds=1,
+    optfunc=NelderMead(),
+    autodiff = :finite,
+    options = Optim.Options(),
+    n_starts = 0,
+    record = Record(),
+    stop_val = sensemap(sense) == :Max ? Inf : -Inf)
+
+    sense = sensemap(sense)
+    if sense == :Max
+        bestval = -Inf
+        comp = >
+    else
+        bestval = Inf
+        comp = <
+    end
+
+    keepbest(a,b) = comp(first_number(a), first_number(b)) ? a : b
+
+    besta = []
+    bests = []
+
+    if !isempty(file_base)
+        txt_file = "$(file_base).txt"
+        jld_file = "$(file_base).jld"
+    else
+        txt_file, jld_file = "", ""
+    end
+
+    !isempty(file_base) && verbosity > 0 &&
+        println("writing to $(txt_file) and $(jld_file)")
+
+    info_to_file(txt_file)
+
+    t0 = time()
+    t_stop = t0 + t_lim
+
+    i = 0
+
+    while (time() < t_stop && comp(stop_val, bestval))
+
+        tdo = Dict(fn=>getfield(options, fn) for fn ∈ fieldnames(typeof(options)))
+        tdo[:time_limit] = t_stop - time()
+        options = Optim.Options(;tdo...)
+
+        a = optim_wrap(f, gen, mapin;
+        nrounds,
+        optfunc,
+        sense,
+        options,
+        autodiff,
+        n_starts)
+
+        !isnothing(record.val) && push!(record.val, a[1])
+        !isnothing(record.vec) && push!(record.vec, a[2])
+
+        i += 1
+
+        val = first_number(a)
+
+        if comp(val,bestval)
+            bestval = val
+            besta = a
+            push!(bests,a)
+            if verbosity >= 2
+		        report(i, bestval, besta, txt_file)
+            end
+            !isempty(file_base) && save(jld_file, "bests", bests)
+        elseif verbosity > 2
+            println("iteration: $(i), val: $(val)")
+        end
+    end
+        
+    verbosity > 0 && println("ran for $(i) iterations and $(time()-t0) seconds")
+
+    return bestval, besta
+end
+
+"""
+An optim wraper that runs for t_lim, and can run in parallel.
+It is based on optim_wrap_many and try_many_trans.
+The reason is is not inside of those is that it violates the abstraction of
+try_many_trans by updating the time left for Optim at each call.
+
+`procs` is the number of cores on which it runs.
+"""
+function optim_wrap_tlim(sense, f::Function, gen::Function, mapin=identity; t_lim = 0,
+    procs = 0,
+    file_base = "",
+    verbose = false,
+    verbosity = 1 + verbose,
+    seed = false,
+    nrounds=1,
+    optfunc=NelderMead(),
+    autodiff = :finite,
+    options = Optim.Options(),
+    n_starts = 0,
+    record = Record(),
+    stop_val = sensemap(sense) == :Max ? Inf : -Inf)
+
+    sense = sensemap(sense)
+    if sense == :Max
+        bestval = -Inf
+        comp = >
+    else
+        bestval = Inf
+        comp = <
+    end
+
+    sub = ()->optim_wrap_tlim1(sense, f, gen, mapin; 
+        t_lim,
+        file_base,
+        verbosity,
+        seed,
+        nrounds,
+        optfunc,
+        autodiff,
+        options,
+        n_starts,
+        record,
+        stop_val)
+
+    if procs == 0
+        a = sub()
+    else
+        keepbest(a,b) = comp(first_number(a), first_number(b)) ? a : b
+        outputs = pmap(j->sub(), 1:procs)
+        a = reduce(keepbest, outputs)
+    end
+
+    return a
 
 end
 

@@ -19,6 +19,7 @@ export randline
 
 include("optim_wrap.jl")
 export optim_wrap, optim_wrap_many, optim_tlim, EveryN, EveryTic
+export optim_wrap_tlim
 
 include("GoWin.jl")
 export gowin

@@ -291,7 +291,6 @@ function optim_wrap_tlim1(sense, f::Function, gen::Function, mapin=identity; t_l
     end
 
     if verbosity > 0
-        println("$(besta[2])")
         println("ran for $(i) iterations and $(time()-t0) seconds. Val: $(besta[1])")
     end
 
@@ -348,6 +347,11 @@ function optim_wrap_tlim(sense, f::Function, gen::Function, mapin=identity; t_li
         keepbest(a,b) = comp(first_number(a), first_number(b)) ? a : b
         outputs = pmap(j->sub(), 1:procs)
         a = reduce(keepbest, outputs)
+    end
+
+    if verbosity > 0
+        println("$(a[2])")
+        println("Val: $(a[1])")
     end
 
     return a

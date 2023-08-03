@@ -54,6 +54,56 @@ function popevolve(f::Function, x0::AbstractArray{Float64}, t_lim;
 
 end
 
+
+function popevolve(f::Function, gen::Function, t_lim;
+    mapin = identity,
+    sense = :Max,
+    n_fac = 10, 
+    conv_tol = 1e-6,
+    verbosity = 1,
+    threads = false,
+    parallel = false,
+    randline = Inf,
+    stop_val = sense == :Max ? Inf : -Inf
+)
+    sense = sensemap(sense)
+    if sense == :Max
+        bestval = -Inf
+        comp = >
+    else
+        bestval = Inf
+        comp = <
+    end
+    keepbest(a,b) = comp(first_number(a), first_number(b)) ? a : b
+
+    @assert !(parallel && threads)
+
+    n = n_fac*length(gen())
+
+    t_stop = time() + t_lim
+
+ 
+    besta = []
+
+    while time() < t_stop
+        pop = [mapin(gen()) for i in 1:n]
+        opt = popevolve(f, pop, t_stop-time(); verbosity=max(0,verbosity-1),
+         mapin, sense, threads, parallel, conv_tol, randline, stop_val)
+
+        val = opt.bestval
+        a = opt.best
+
+        if comp(val,bestval)
+            bestval = val
+            besta = a
+        end
+
+    end
+
+    return bestval, besta
+
+end
+
 const TRIES = [-2;-1;-0.5;0.5;1;2]
 
 function try6(f::Function, mapin, x0, del, comp)

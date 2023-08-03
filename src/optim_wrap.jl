@@ -294,6 +294,15 @@ function optim_wrap_tlim1(sense, f::Function, gen::Function, mapin=identity; t_l
         println("ran for $(i) iterations and $(time()-t0) seconds. Val: $(besta[1])")
     end
 
+
+    # REMOVE LATER: IS CHECKING FOR DETERMINISM
+    val = f(besta[2])
+    if abs(val - besta[1]) > 1e-8
+        println("Value disagreement")
+        println("just computed $val, but had")
+        println(besta)
+    end
+
     return besta
 end
 

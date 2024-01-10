@@ -1,6 +1,6 @@
 module DASopt
 
-using FileIO, JLD, Optim, Dates, Random, Distributed, ThreadsX
+using FileIO, JLD, Optim, Dates, Random, Distributed, ThreadsX, SharedArrays
 using LinearAlgebra, Statistics
 
 include("util.jl")

@@ -223,6 +223,8 @@ function optim_wrap_tlim1(sense, f::Function, gen::Function, mapin=identity; t_l
     options = Optim.Options(),
     n_starts = 0,
     record = Record(),
+    iters = [],
+    thisid = 0,
     stop_val = sensemap(sense) == :Max ? Inf : -Inf)
 
     sense = sensemap(sense)
@@ -294,14 +296,19 @@ function optim_wrap_tlim1(sense, f::Function, gen::Function, mapin=identity; t_l
         println("ran for $(i) iterations and $(time()-t0) seconds. Val: $(besta[1])")
     end
 
+    if length(iters) >= thisid
+        iters[thisid] = i
+    end
 
     # REMOVE LATER: IS CHECKING FOR DETERMINISM
+    #=
     val = f(besta[2])
     if abs(val - besta[1]) > 1e-8
         println("Value disagreement")
         println("just computed $val, but had")
         println(besta)
     end
+    =#
 
     return besta
 end
@@ -337,10 +344,35 @@ function optim_wrap_tlim(sense, f::Function, gen::Function, mapin=identity; t_li
         comp = <
     end
 
-    sub = ()->optim_wrap_tlim1(sense, f, gen, mapin; 
+    #nax
+
+    capture_iters = SharedVector(zeros(Int, procs))
+    for j in 1:procs
+        capture_iters[j] = j^2 + 1
+    end
+
+    sub_verbosity = procs > 0 ? max(0,verbosity-1) : verbosity
+
+    if procs > 0
+        sub = j->optim_wrap_tlim1(sense, f, gen, mapin; 
+            t_lim,
+            file_base,
+            verbosity = sub_verbosity, 
+            seed,
+            nrounds,
+            optfunc,
+            autodiff,
+            options,
+            n_starts,
+            record,
+            iters = capture_iters,
+            thisid = j,
+            stop_val)
+    else
+        sub = ()->optim_wrap_tlim1(sense, f, gen, mapin; 
         t_lim,
         file_base,
-        verbosity,
+        verbosity = sub_verbosity, 
         seed,
         nrounds,
         optfunc,
@@ -348,19 +380,29 @@ function optim_wrap_tlim(sense, f::Function, gen::Function, mapin=identity; t_li
         options,
         n_starts,
         record,
-        stop_val)
+        stop_val)       
+    end
+
+    t0 = time()
+
+    iters = 0
 
     if procs == 0
         a = sub()
     else
         keepbest(a,b) = comp(first_number(a), first_number(b)) ? a : b
-        outputs = pmap(j->sub(), 1:procs)
+        outputs = pmap(j->sub(j), 1:procs)
         a = reduce(keepbest, outputs)
+        iters = sum(capture_iters)
     end
 
     if verbosity > 0
-        println("$(a[2])")
+        if verbosity == 1
+            print("Ran for $(time()-t0) seconds and $iters total iters. ")
+        end
         println("Val: $(a[1])")
+#        println("$(a[2])")
+#        println("Val: $(a[1])")
     end
 
     return a

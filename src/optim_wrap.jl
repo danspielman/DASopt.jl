@@ -296,7 +296,7 @@ function optim_wrap_tlim1(sense, f::Function, gen::Function, mapin=identity; t_l
         println("ran for $(i) iterations and $(time()-t0) seconds. Val: $(besta[1])")
     end
 
-    if length(iters) >= thisid
+    if thisid > 0 && length(iters) >= thisid
         iters[thisid] = i
     end
 

@@ -344,7 +344,9 @@ function optim_wrap_tlim(sense, f::Function, gen::Function, mapin=identity; t_li
         comp = <
     end
 
-    #nax
+    if !isdefined(Main, :nprocs) || nprocs() == 1
+        procs = 0
+    end
 
     capture_iters = SharedVector(zeros(Int, procs))
     for j in 1:procs

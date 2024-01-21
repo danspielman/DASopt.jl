@@ -142,7 +142,7 @@ function optim_wrap(f::Function, gen::Function, mapin=identity;
     fixed_f(z) = f(mapin(z))
 
     if n_starts > 1 
-        x0, _  = try_many(fixed_f, gen, sense, n_tries = n_starts, verbosity=0)
+        _, x0  = try_many(fixed_f, gen, sense, n_tries = n_starts, verbosity=0)
     else
         x0 = gen()
     end 

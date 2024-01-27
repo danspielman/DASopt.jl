@@ -4,9 +4,13 @@ These are optimizers, and wrappers for them, that I like to use.
 
 =#
 
+popevolve(sense::typeof(min), obj::Function, args...; kwargs...) = popevolve(:Min, obj, args...; kwargs...)
+popevolve(sense::typeof(max), obj::Function, args...; kwargs...) = popevolve(:Max, obj, args...; kwargs...)
+
+
 """
-    opt = popevolve(f, x0, t_lim; mapin = identity,
-        sense = :Max,
+    val, x = popevolve(sense, f, x0 / gen, mapin = identity; 
+        t_lim = 60,
         n_fac = 10, 
         conv_tol = 1e-6,
         verbosity = 1,
@@ -16,7 +20,9 @@ These are optimizers, and wrappers for them, that I like to use.
 Generates and evolves a population of potential solutions to minimize the function f.
 
 # Arguments
+- `sense` should be `min` or `max`.
 - `x0` is either an example input, and an initial population is generated to look like this. Or it is just the initial population.
+- `gen` instead of `x0` we could give a generator
 - `n_fac::Integer`: if `x0` is an example rather than a population, the number of elements in the initial population is this times the length of `x0`. 
 - `t_lim`: un upper bound on the number of seconds for which to run
 - `sense`: either `:Max` or `:Min`, default is `:Max`
@@ -27,31 +33,26 @@ Generates and evolves a population of potential solutions to minimize the functi
 - `randline`: if not infinite, will search in a random direction every randline steps, instead of the DE one.
 - `stop_val`: stop if get a value better than this
 
-The return, opt, has a couple of fields:
-* best: the best solution
-* bestval: the value of it
-* pop: the population at the end
-* 
-
+Returns the best value in `val`
+and the vector on which it was obtained.
 """
-function popevolve(f::Function, x0::AbstractArray{Float64}, t_lim;
-    mapin = identity,
-    sense = :Max,
-    n_fac = 10, 
-    conv_tol = 1e-6,
-    verbosity = 1,
-    threads = false,
-    parallel = false,
-    randline = Inf,
-    stop_val = sense == :Max ? Inf : -Inf
+function popevolve(sense::Symbol, f::Function, gen::Function, mapin = identity; 
+    t_lim = -Inf,
+    kwargs...
 )
-    @assert !(parallel && threads)
+    if t_lim == -Inf
+        verbosity > 0 && println("Setting t_lim is strongly recommended. It was just set to 60 seconds by default.")
+        t_lim = 60
+    end
 
-    n = n_fac*length(x0)
-    pop = [mapin(randn(size(x0))) for i in 1:n]
+    if sense == :max 
+        sense = :Max
+    end
+    if sense == :min
+        sense = :Min
+    end
 
-    popevolve(f, pop, t_lim; verbosity, mapin, sense, threads, parallel, conv_tol, randline, stop_val)
-
+    popevolve(f, gen, t_lim; sense, mapin, kwargs...)
 end
 
 
@@ -85,10 +86,14 @@ function popevolve(f::Function, gen::Function, t_lim;
  
     besta = []
 
+    nruns = 0
+    totrounds = [0]
+
     while time() < t_stop
+        nruns += 1
         pop = [mapin(gen()) for i in 1:n]
         opt = popevolve(f, pop, t_stop-time(); verbosity=max(0,verbosity-1),
-         mapin, sense, threads, parallel, conv_tol, randline, stop_val)
+         mapin, sense, threads, parallel, conv_tol, randline, stop_val, totrounds)
 
         val = opt.bestval
         a = opt.best
@@ -98,6 +103,10 @@ function popevolve(f::Function, gen::Function, t_lim;
             besta = a
         end
 
+    end
+
+    if verbosity > 0
+        println("Best val: $bestval, after $nruns runs with a total of $(totrounds[1]) rounds.")
     end
 
     return bestval, besta
@@ -120,6 +129,7 @@ function try6(f::Function, mapin, x0, del, comp)
     return bestt, bestval
 end
 
+# this is one of the main routines
 function popevolve(f::Function, pop::AbstractArray{Array{T,N},1}, t_lim;
     mapin=identity,
     sense = :Max,
@@ -128,14 +138,15 @@ function popevolve(f::Function, pop::AbstractArray{Array{T,N},1}, t_lim;
     threads = false,
     parallel = false,
     randline = Inf,
-    stop_val = sense == :Max ? Inf : -Inf
+    stop_val = sense == :Max ? Inf : -Inf,
+    totrounds = []
     ) where {T,N}
 
     @assert !(parallel && threads)
 
     if parallel
         return popevolve_par(f, pop, t_lim; 
-        mapin, sense, conv_tol, randline, verbosity, stop_val)
+        mapin, sense, conv_tol, randline, verbosity, stop_val, totrounds)
     end
 
     @assert sense==:Max || sense==:Min
@@ -244,7 +255,32 @@ function popevolve(f::Function, pop::AbstractArray{Array{T,N},1}, t_lim;
 
     verbosity > 0 && println("final: $(vals[i]), after $(round) rounds and $(time()-t0) seconds.")
 
+    if length(totrounds) > 0
+        totrounds[1] += round
+    end
+
     return opt
+
+end
+
+# this is NOT a main routine -- it just works from an example
+function popevolve(f::Function, x0::AbstractArray{Float64}, t_lim;
+    mapin = identity,
+    sense = :Max,
+    n_fac = 10, 
+    conv_tol = 1e-6,
+    verbosity = 1,
+    threads = false,
+    parallel = false,
+    randline = Inf,
+    stop_val = sense == :Max ? Inf : -Inf
+)
+    @assert !(parallel && threads)
+
+    n = n_fac*length(x0)
+    pop = [mapin(randn(size(x0))) for i in 1:n]
+
+    popevolve(f, pop, t_lim; verbosity, mapin, sense, threads, parallel, conv_tol, randline, stop_val)
 
 end
 
@@ -255,7 +291,8 @@ function popevolve_par(f::Function, pop::AbstractArray{Array{T,N},1}, t_lim;
     conv_tol = 1e-6,
     verbosity = 1,
     randline = Inf,
-    stop_val = sense == :Max ? Inf : -Inf
+    stop_val = sense == :Max ? Inf : -Inf,
+    totrounds = []
     ) where {T,N}
 
     @assert sense==:Max || sense==:Min
@@ -374,6 +411,10 @@ function popevolve_par(f::Function, pop::AbstractArray{Array{T,N},1}, t_lim;
     i = argbest(vals)
     opt = (best=pop[i], bestval=vals[i], pop=pop, rounds=round, secs=time()-t0)
     verbosity > 0 && println("final: $(vals[i]), after $(round) rounds and $(time()-t0) seconds.")
+
+    if length(totrounds) > 0
+        totrounds[1] += round
+    end
 
     return opt
 

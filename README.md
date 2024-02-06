@@ -101,6 +101,45 @@ val, x = optim_wrap(:max, f, ()->randn(n), mapin)
 (1.7734985707334308, [8.39434561247921e-5, 0.00012424402997208802, 0.00020035710940736397, 2.5159920185916727e-8, 9.968906828488826e-9, 0.19678042428047735, 1.7629768354561528, 0.3063347958458918, 1.094806043147923, 3.872347373117642])
 ```
 
+If you'd like the actual output of `Optim`, say to find out why it stopped when it did, pass an empty array as an optional parameter `optim_out`, like this
+
+~~~julia
+optim_out = []
+val, x = optim_wrap(:max, f, randn(n), mapin; optim_out)
+~~~
+
+That's some idiosyncratic Julia that is equivalent to
+~~~julia
+oo = []
+val, x = optim_wrap(:max, f, randn(n), mapin; optim_out=oo)
+~~~
+
+When you look at `optim_out[1]` (or `oo[1]` in the second version), it will tell you why `Optim` stopped running. To deal with it programmatically, you can find a list of the fields inside it by 
+~~~julia
+fieldnames(typeof(optim_out[1]))
+~~~
+
+For example. to find the number of iterations for which it ran, look at
+~~~julia
+optim_out[1].iterations
+~~~
+
+By default, `Optim` will stop after 1000 iterations. You can pass options to `Optim` to try running for longer, like this.
+
+~~~julia
+using Optim
+optim_out = []
+val, x = optim_wrap(:max, f, randn(n), mapin; optim_out, 
+    options = Optim.Options(iterations=10_000))
+~~~
+```
+(1.7774757759766937, [4.023537986548861e-8, 3.98980950460594e-8, 2.0873442725052612e-7, 3.2538420220220974e-8, 1.457651648215776e-7, 7.000558921398792e-7, 3.5531868787344005, 1.602793377169931, 2.1782442039752707, 18.192652050165087])
+```
+
+Sometimes this will help it come closer to the right value.
+
+### Running many times
+
 It's still not coming close to the right value.
 So, we might want to run it many times, and then take the best.
 We can either tell it how many times we want it to run, or we can set a time limit.
@@ -135,6 +174,8 @@ bestval = f(xs)
 1.7788651463070229
 ```
 
+### Other optimization functions
+
 We can use other optimizers provided by Optim, like this.
 
 ~~~julia
@@ -144,6 +185,11 @@ val, x = optim_wrap(:max, f, ()->randn(n), x->abs.(x), optfunc=LBFGS())
 ```
 (1.7785702013750266, [2.1919045027547362e-17, 6.052728403732219e-17, 5.088278283321528e-17, 3.445083119221125e-17, 1.7365323604089583e-16, 7.709998792025272e-16, 1.8132465363571096e-15, 2.5501904120707195, 2.583935183796174, 1.091193407482604])
 ```
+
+If you get an error from LBFGS, I suggest running it with a different linesearch, like 
+~~~julia
+optfunc = LBFGS(;linesearch = LineSearches.BackTracking())
+~~~
 
 You might be tempted to incorporate the mapin function directly into the objective function, like this:
 
@@ -270,11 +316,20 @@ For complex functions f, the parallel code will be better.
 ## output
 
 You can control the amount of output of these routines by setting the `verbosity` parameter. 
-Setting it to 0 suppresses output.
-1 is the default.
-2 typically provides output for each successive optimum.
-3 provides output for every call of Optim.
+- 0 suppresses output.
+- 1 is the default. It just provides output at the end.
+- 2 typically provides output for each - successive optimum. Expect a number of outputs logarithmic in the number of trials.
+- 3 provides output for every call of Optim.
+
 But, the parallel code decreases the verbosity by 1 for the worker processes.
+
+## Other options
+These are some other options that can be set for some of these functions.
+
+- `stop_val` : if you are just trying to find out if the optimum can be made better than some x, then set `stop_val` to this x. The routines will stop as soon as they find an example that satisfies this.
+
+- `n_starts` : rather than trying to optimize starting from a random vector (output by `gen`), we take `n_starts` samples from `gen`, find the best of them, and then start optimizing from it.
+
 
 ## more documentation
 

@@ -90,7 +90,7 @@ ran for 25667613 iterations and 10.0 seconds
 
 ## `optim_wrap`
 
-Or, we could use the optimization heuristics supplied by Optim.jl.
+Or, we could use the optimization heuristics supplied by [Optim.jl](https://github.com/JuliaNLSolvers/Optim.jl/).
 Here, we'll run it once and use a `mapin` function to make the input vector non-negative.
 
 ~~~julia

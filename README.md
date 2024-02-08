@@ -253,6 +253,9 @@ In this case, you might want to pass options to Optim to let it run for longer.
 Above, we saw how to increase the number of iterations it will run.
 Note that these are the iterations of its internal routine, not the iterations we report above.
 
+While it seems natural to set `procs` to be the number of processors, `nprocs()`, this is not always to your advantage. If your objective function is complicated, it may already be parallel or multi-threaded, in which case running it on every processor can slow it down.
+If the objective function requires a lot of memory, and you have a lot of processors, then using all of them can run out the system memory.
+
 `optim_wrap` also has multi-threaded versions, but those don't perform as well.
 
 ~~~julia

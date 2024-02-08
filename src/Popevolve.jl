@@ -55,7 +55,7 @@ function popevolve(sense::Symbol, f::Function, gen::Function, mapin = identity;
     popevolve(f, gen, t_lim; sense, mapin, kwargs...)
 end
 
-
+# this is the old interface
 function popevolve(f::Function, gen::Function, t_lim;
     mapin = identity,
     sense = :Max,

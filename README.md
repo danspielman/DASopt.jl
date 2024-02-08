@@ -144,6 +144,9 @@ It's still not coming close to the right value.
 So, we might want to run it many times, and then take the best.
 We can either tell it how many times we want it to run, or we can set a time limit.
 
+The advantage of running many times is that each time we start Optim from a random input, in this case the one given by the generator `randn(n)`. 
+While most routines used by Optim are deterministic, starting optimizing from a different point each time will vary the results.
+
 ~~~julia
 val, x = optim_wrap(:max, f, ()->randn(n), mapin, t_lim=10)
 ~~~
@@ -237,11 +240,18 @@ using Distributed
 addprocs()
 @everywhere using DASopt
 @everywhere include("myfun.jl")
-val, x = optim_wrap_tlim(:max, f, ()->randn(n), x->abs.(x), t_lim = 10, procs=4)
+val, x = optim_wrap_tlim(:max, f, ()->randn(n), x->abs.(x), t_lim = 10, procs=10)
 ~~~
 ```
-Ran for 10.120337009429932 seconds and 75876 total iters. Val: 1.7774334303682358
+Ran for 10.233434200286865 seconds and 105077 total iters (converged 82487). Val: 1.7772689981819667
 ```
+
+Each of these reported iterations is a fresh run of Optim from a different random starting point.
+We also report the number of these iterations in which Optim reached its stopping criteria.
+When it doesn't converge, it is usually because either it has run out of time, it took too many iterations, or did something else too many times.
+In this case, you might want to pass options to Optim to let it run for longer.
+Above, we saw how to increase the number of iterations it will run.
+Note that these are the iterations of its internal routine, not the iterations we report above.
 
 `optim_wrap` also has multi-threaded versions, but those don't perform as well.
 

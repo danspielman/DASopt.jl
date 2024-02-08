@@ -99,6 +99,7 @@ optim_wrap(sense::typeof(max), obj::Function, args...; kwargs...) = optim_wrap(:
 
 #=
 The following is the old interface, which the new interface calls.
+This one assumes one vector input, rather than a generator.
 =#
 function optim_wrap(f::Function, x0::Array, mapin=identity;
     nrounds=1,
@@ -137,6 +138,10 @@ function optim_wrap(f::Function, x0::Array, mapin=identity;
     return val, x0
 end
 
+#=
+The following is the old interface, which the new interface calls.
+This one takes a generator as input, and it calls the one that takes a vector
+=#
 function optim_wrap(f::Function, gen::Function, mapin=identity;
     nrounds=1,
     optfunc=NelderMead(),
@@ -219,6 +224,8 @@ An optim wraper that runs for t_lim on one core.
 It is based on optim_wrap_many and try_many_trans.
 The reason is is not inside of those is that it violates the abstraction of
 try_many_trans by updating the time left for Optim at each call.
+
+Counts how many calls to optim converge.
 """
 function optim_wrap_tlim1(sense, f::Function, gen::Function, mapin=identity; t_lim = 0,
     file_base = "",
@@ -232,6 +239,7 @@ function optim_wrap_tlim1(sense, f::Function, gen::Function, mapin=identity; t_l
     n_starts = 0,
     record = Record(),
     iters = [],
+    report_converged = [],
     thisid = 0,
     stop_val = sensemap(sense) == :Max ? Inf : -Inf)
 
@@ -266,11 +274,15 @@ function optim_wrap_tlim1(sense, f::Function, gen::Function, mapin=identity; t_l
 
     i = 0
 
+    n_converged = 0
+
     while (time() < t_stop && comp(stop_val, bestval))
 
         tdo = Dict(fn=>getfield(options, fn) for fn ∈ fieldnames(typeof(options)))
         tdo[:time_limit] = t_stop - time()
         options = Optim.Options(;tdo...)
+
+        optim_out = []
 
         a = optim_wrap(f, gen, mapin;
         nrounds,
@@ -278,12 +290,14 @@ function optim_wrap_tlim1(sense, f::Function, gen::Function, mapin=identity; t_l
         sense,
         options,
         autodiff,
-        n_starts)
+        n_starts,
+        optim_out)
 
         !isnothing(record.val) && push!(record.val, a[1])
         !isnothing(record.vec) && push!(record.vec, a[2])
 
         i += 1
+        n_converged += Optim.converged(optim_out[1])
 
         val = first_number(a)
 
@@ -301,11 +315,15 @@ function optim_wrap_tlim1(sense, f::Function, gen::Function, mapin=identity; t_l
     end
 
     if verbosity > 0
-        println("ran for $(i) iterations and $(time()-t0) seconds. Val: $(besta[1])")
+        println("Ran for $(i) iterations (converged on $(n_converged)) and $(time()-t0) seconds. Val: $(first_number(besta))")
     end
 
     if thisid > 0 && length(iters) >= thisid
         iters[thisid] = i
+    end
+
+    if thisid > 0 && length(report_converged) >= thisid
+        report_converged[thisid] = n_converged
     end
 
     # REMOVE LATER: IS CHECKING FOR DETERMINISM
@@ -352,18 +370,34 @@ function optim_wrap_tlim(sense, f::Function, gen::Function, mapin=identity; t_li
         comp = <
     end
 
-    if !isdefined(Main, :nprocs) || nprocs() == 1
+    if t_lim == 0
+        @warn "t_lim should be set to something > 0"
+        t_lim = 0.1
+    end
+
+    parallel = isdefined(Main, :nprocs) && nprocs() > 1 && procs > 1
+
+    if parallel
+        capture_iters = SharedVector(zeros(Int, procs))
+        for j in 1:procs
+            capture_iters[j] = 0
+        end
+
+        capture_converged = SharedVector(zeros(Int, procs))
+        for j in 1:procs
+            capture_converged[j] = 0
+        end
+    else
         procs = 0
+        capture_iters = Int[0]
+        capture_converged = Int[0]
     end
 
-    capture_iters = SharedVector(zeros(Int, procs))
-    for j in 1:procs
-        capture_iters[j] = j^2 + 1
-    end
 
-    sub_verbosity = procs > 0 ? max(0,verbosity-1) : verbosity
+    # sub_verbosity = procs > 0 ? max(0,verbosity-1) : verbosity
+    sub_verbosity = max(0,verbosity-1)
 
-    if procs > 0
+    if parallel
         sub = j->optim_wrap_tlim1(sense, f, gen, mapin; 
             t_lim,
             file_base,
@@ -376,13 +410,14 @@ function optim_wrap_tlim(sense, f::Function, gen::Function, mapin=identity; t_li
             n_starts,
             record,
             iters = capture_iters,
+            report_converged = capture_converged,
             thisid = j,
             stop_val)
     else
         sub = ()->optim_wrap_tlim1(sense, f, gen, mapin; 
         t_lim,
         file_base,
-        verbosity = sub_verbosity, 
+        verbosity = sub_verbosity,
         seed,
         nrounds,
         optfunc,
@@ -390,25 +425,32 @@ function optim_wrap_tlim(sense, f::Function, gen::Function, mapin=identity; t_li
         options,
         n_starts,
         record,
+        iters = capture_iters,
+        report_converged = capture_converged,
+        thisid = 1,        
         stop_val)       
     end
 
     t0 = time()
 
     iters = 0
+    n_converged = 0
 
-    if procs == 0
+    if !parallel
         a = sub()
+        iters = capture_iters[1]
+        n_converged = capture_converged[1]
     else
         keepbest(a,b) = comp(first_number(a), first_number(b)) ? a : b
         outputs = pmap(j->sub(j), 1:procs)
         a = reduce(keepbest, outputs)
         iters = sum(capture_iters)
+        n_converged = sum(capture_converged)
     end
 
     if verbosity > 0
         if verbosity == 1
-            print("Ran for $(time()-t0) seconds and $iters total iters. ")
+            print("Ran for $(time()-t0) seconds and $iters total iters (converged $(n_converged)). ")
         end
         println("Val: $(a[1])")
 #        println("$(a[2])")

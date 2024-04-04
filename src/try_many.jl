@@ -30,7 +30,7 @@ This prevents the generator for instances from intefering with any generator the
 Will force seed, unless using `local_rng`.  `local_rng` parallelizes the time of generation.
 - `threads::Integer`: if 0, don't use threads. If > 0, will batch with this many threads.
 Can not use this and par_batch at the same time.
-- `record::Record`: fields are val, vec, status. If are set to arrays that output is appended to these.
+- `record=nothing`: if is an array, output is appended here
 
 If obj returns a structure or a tuple, then we take the first number in its output as the value of this object.
 """
@@ -43,7 +43,7 @@ function try_many(sense::Symbol, obj::Function, gen::Function;
     local_rng = false,
     par_batch = 0,
     threads = 0,
-    record = Record(),
+    record = nothing,
     stop_val = (sense == :Max || sense == :max) ? Inf : -Inf)
 
     if n_tries == Inf && t_lim == Inf
@@ -99,7 +99,7 @@ function try_many_trans(func::Function, gen::Function, sense::Symbol; n_tries = 
     local_rng = false,
     par_batch = 0,
     threads = 0,
-    record = Record(),
+    record = nothing,
     stop_val = sense == :Max ? Inf : -Inf)
 
     @assert sense == :Max || sense == :Min
@@ -152,9 +152,11 @@ function try_many_trans(func::Function, gen::Function, sense::Symbol; n_tries = 
 	        end
             a = func(x)
 
-            !isnothing(record.val) && push!(record.val, a[1])
-            !isnothing(record.vec) && push!(record.vec, a[2])
+            isa(record, Vector) && push!(record, a)
+            #!isnothing(record.val) && push!(record.val, a[1])
+            #!isnothing(record.vec) && push!(record.vec, a[2])
 
+            #@show record
 
         end
 

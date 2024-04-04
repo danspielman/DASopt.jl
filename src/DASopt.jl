@@ -5,9 +5,6 @@ using LinearAlgebra, Statistics
 
 include("util.jl")
 
-include("Record.jl")
-export Record
-
 include("try_many.jl")
 export try_many, try_many_trans
 

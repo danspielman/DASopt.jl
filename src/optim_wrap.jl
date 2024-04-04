@@ -8,7 +8,7 @@
     n_starts = 0,
     par_batch = 0,
     threads = 0,
-    record = Record(),
+    record = nothing,
     optim_out=nothing,
     stop_val = Inf or -Inf depending on sense)
 
@@ -58,7 +58,7 @@ function optim_wrap(sense::Symbol, obj::Function, gen, mapin=identity;
     n_starts = 0,
     par_batch = 0,
     threads = 0,
-    record = Record(),
+    record = nothing,
     optim_out = nothing,
     stop_val = (sense == :Max || sense == :max) ? Inf : -Inf)
     
@@ -188,7 +188,7 @@ function optim_wrap_many(f::Function, gen::Function, mapin=identity;  n_tries = 
     n_starts = 0,
     par_batch = 0,
     threads = 0,
-    record = Record(),
+    record = nothing,
     stop_val = (sense == :Max || sense == :max) ? Inf : -Inf)
 
     if t_lim < Inf
@@ -207,15 +207,17 @@ function optim_wrap_many(f::Function, gen::Function, mapin=identity;  n_tries = 
 
     # if t_lim, put that into options
 
-    return try_many_trans(fsub, ()->Nothing, sense, n_tries = n_tries, t_lim = t_lim,
-        file_base = file_base,
-        verbosity = verbosity,
-        seed = seed,
-        local_rng = local_rng,
-        par_batch = par_batch,
-        threads = threads,
-        stop_val = stop_val,
-        record = record)
+    return try_many_trans(fsub, ()->Nothing, sense;
+        n_tries, 
+        t_lim,
+        file_base,
+        verbosity,
+        seed,
+        local_rng,
+        par_batch,
+        threads,
+        stop_val,
+        record)
 end
 
 
@@ -237,7 +239,7 @@ function optim_wrap_tlim1(sense, f::Function, gen::Function, mapin=identity; t_l
     autodiff = :finite,
     options = Optim.Options(),
     n_starts = 0,
-    record = Record(),
+    record = nothing,
     iters = [],
     report_converged = [],
     thisid = 0,
@@ -293,8 +295,9 @@ function optim_wrap_tlim1(sense, f::Function, gen::Function, mapin=identity; t_l
         n_starts,
         optim_out)
 
-        !isnothing(record.val) && push!(record.val, a[1])
-        !isnothing(record.vec) && push!(record.vec, a[2])
+        isa(record, Vector) && push!(record, a)
+        #!isnothing(record.val) && push!(record.val, a[1])
+        #!isnothing(record.vec) && push!(record.vec, a[2])
 
         i += 1
         n_converged += Optim.converged(optim_out[1])
@@ -358,7 +361,7 @@ function optim_wrap_tlim(sense, f::Function, gen::Function, mapin=identity; t_li
     autodiff = :finite,
     options = Optim.Options(),
     n_starts = 0,
-    record = Record(),
+    record = nothing,
     stop_val = sensemap(sense) == :Max ? Inf : -Inf)
 
     sense = sensemap(sense)

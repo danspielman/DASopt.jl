@@ -21,7 +21,11 @@ export optim_wrap_tlim
 include("GoWin.jl")
 export gowin
 
+include("multi_opt.jl")
+export multi_opt
+
 include("dastest.jl")
 export dastest
+
 
 end

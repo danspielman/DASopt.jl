@@ -343,6 +343,22 @@ function optim_wrap_tlim1(sense, f::Function, gen::Function, mapin=identity; t_l
 end
 
 """
+    val, x = optim_wrap_tlim(sense, f::Function, gen::Function, mapin=identity;
+        t_lim = 0,
+        procs = 0,
+        file_base = "",
+        verbosity = 1 + verbose,
+        seed = false,
+        nrounds=1,
+        optfunc=NelderMead(),
+        autodiff = :finite,
+        options = Optim.Options(),
+        n_starts = 0,
+        record = nothing,
+        report_iters = nothing,
+        report_converged = nothing,
+        stop_val = sensemap(sense) == :Max ? Inf : -Inf)
+
 An optim wraper that runs for t_lim, and can run in parallel.
 It is based on optim_wrap_many and try_many_trans.
 The reason is is not inside of those is that it violates the abstraction of
@@ -362,6 +378,8 @@ function optim_wrap_tlim(sense, f::Function, gen::Function, mapin=identity; t_li
     options = Optim.Options(),
     n_starts = 0,
     record = nothing,
+    report_iters = nothing,
+    report_converged = nothing,
     stop_val = sensemap(sense) == :Max ? Inf : -Inf)
 
     sense = sensemap(sense)
@@ -450,6 +468,9 @@ function optim_wrap_tlim(sense, f::Function, gen::Function, mapin=identity; t_li
         iters = sum(capture_iters)
         n_converged = sum(capture_converged)
     end
+
+    isa(report_iters, Vector) && push!(report_iters, iters)
+    isa(report_converged, Vector) && push!(report_converged, n_converged)
 
     if verbosity > 0
         if verbosity == 1

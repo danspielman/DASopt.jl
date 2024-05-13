@@ -55,7 +55,7 @@ function popevolve(sense::Symbol, f::Function, gen::Function, mapin = identity;
     popevolve(f, gen, t_lim; sense, mapin, kwargs...)
 end
 
-# this is the old interface
+# this is the old interface and main entry point.
 function popevolve(f::Function, gen::Function, t_lim;
     mapin = identity,
     sense = :Max,
@@ -91,7 +91,7 @@ function popevolve(f::Function, gen::Function, t_lim;
 
     while time() < t_stop
         nruns += 1
-        pop = [mapin(gen()) for i in 1:n]
+        pop = [mapin(gen()) for i in 1:n] # could run too long
         opt = popevolve(f, pop, t_stop-time(); verbosity=max(0,verbosity-1),
          mapin, sense, threads, parallel, conv_tol, randline, stop_val, totrounds)
 
@@ -154,12 +154,14 @@ function popevolve(f::Function, pop::AbstractArray{Array{T,N},1}, t_lim;
         bestimum = maximum
         worstimum = minimum
         argbest = argmax
+        worst = -Inf
         comp = >=
         sgn = -1
     else
         bestimum = minimum
         worstimum = maximum
         argbest = argmin
+        worst = Inf
         comp = <=
         sgn = 1
     end
@@ -170,9 +172,18 @@ function popevolve(f::Function, pop::AbstractArray{Array{T,N},1}, t_lim;
 
     verbosity > 1 && println("initial pop size $(n).")
 
-    vals = f.(pop)
-
     t0 = time()
+
+    vals = worst*ones(length(pop))
+    for i in 1:length(pop)
+        vals[i] = f(pop[i])
+        if time() > t0 + t_lim
+            verbosity > 0 && 
+            println("hit t_lim before evaluating f on initial population.")    
+            break
+        end
+    end
+    # vals = f.(pop) # need to check time on this.
 
     bestval = bestimum(vals)
     verbosity > 1  && println("initial best: $(bestval)")
@@ -220,6 +231,11 @@ function popevolve(f::Function, pop::AbstractArray{Array{T,N},1}, t_lim;
             end
         else
             for k in 1:n
+
+                if time() > t0 + t_lim
+                    break
+                end
+
                 i = ip[k]
                 j = jp[k]
                 if i != j
@@ -318,16 +334,28 @@ function popevolve_par(f::Function, pop::AbstractArray{Array{T,N},1}, t_lim;
 
     verbosity > 1 && println("initial pop size $(n).")
 
+    t0 = time()
+    t_stop = t0 + t_lim
+
+    init_pop_computed = true
+
     #vals = pmap(f,pop)
     vals = pmap(pop) do p
         try 
-            f(p)
+            if time() < t_stop
+                f(p)
+            else
+                init_pop_computed = false
+                senseInf
+            end
         catch jnk
+            init_pop_computed = false
             senseInf
         end
     end
 
-    t0 = time()
+    verbosity > 0 && !init_pop_computed && println("hit t_lim before evaluating f on initial population. (in par)")    
+
 
     bestval = bestimum(vals)
     verbosity > 1 && println("initial best: $(bestval)")
@@ -336,7 +364,7 @@ function popevolve_par(f::Function, pop::AbstractArray{Array{T,N},1}, t_lim;
 
     round = 0
 
-    while (time() < t0 + t_lim && comp(stop_val, bestval))
+    while (time() < t_stop && comp(stop_val, bestval))
         if time() > t1 + t_lim/9
             verbosity > 1 && println("Round $(round): $(bestimum(vals))")
             t1 = time()
@@ -362,17 +390,21 @@ function popevolve_par(f::Function, pop::AbstractArray{Array{T,N},1}, t_lim;
                 t = 0.0
 
                 try
-                    opt = optimize(t->sgn*f(mapin(p + t*del)), -2, 2, Brent(), iterations = 10)
-
-                    t = opt.minimizer
-                    bestval = sgn*opt.minimum
-
                     default = f(mapin(p))
 
-                    if comp(bestval, default)
-                        p = mapin(p + t*del)  
+                    if time() < t_stop
+                        opt = optimize(t->sgn*f(mapin(p + t*del)), -2, 2, Brent(), iterations = 10)
+
+                        t = opt.minimizer
+                        bestval = sgn*opt.minimum
+
+                        if comp(bestval, default)
+                            p = mapin(p + t*del)  
+                        else
+                            bestval = default
+                        end
                     else
-                        bestval = default
+                        bestval = default 
                     end
     
                 catch err

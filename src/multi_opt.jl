@@ -32,9 +32,11 @@ function multi_opt(sense, f::Function, gen::Function, mapin=identity; t_lim = 0,
 
     # NelderMead
 
+    nrounds = mapin==identity ? 1 : 2
+
     val, x = optim_wrap_tlim(sense, f, gen, mapin; 
         t_lim, procs, verbosity=sub_verbosity, stop_val,
-        report_iters, report_converged)
+        report_iters, report_converged, nrounds)
 
     bestval = val
     bestx = copy(x)
@@ -52,6 +54,7 @@ function multi_opt(sense, f::Function, gen::Function, mapin=identity; t_lim = 0,
         val, x = optim_wrap_tlim(sense, f, gen, mapin; 
         t_lim, procs, verbosity=sub_verbosity, stop_val,
         report_iters, report_converged, 
+        nrounds, 
         options = Optim.Options(iterations=fac*1_000))
 
         if comp(val, bestval)
@@ -124,8 +127,8 @@ function multi_opt(sense, f::Function, gen::Function, mapin=identity; t_lim = 0,
     end
 
     if verbosity > 0
-        if verbosity == 1
-            print("Ran for $(time()-t0) seconds. Winning alg was $bestalg ")
+        if verbosity > 0
+            print("Ran for $(time()-t0) seconds. Winning alg was $(bestalg).")
         end
         println("Val: $bestval")
 #        println("$(a[2])")

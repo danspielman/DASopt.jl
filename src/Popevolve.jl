@@ -29,7 +29,8 @@ Generates and evolves a population of potential solutions to minimize the functi
 - `mapin`: a function to apply to map inputs into the domain
 - `conv_tol`: stop once all solutions are within this distance in function value
 - `threads`: if true use multithreading (not yet working)
-- `parallel`: if true use pmap. most useful when `f` is slow
+- `procs`: for parallel, number of procs to use
+- `parallel`: if true use pmap. most useful when `f` is slow. will phase out and use procs instead
 - `randline`: if not infinite, will search in a random direction every randline steps, instead of the DE one.
 - `stop_val`: stop if get a value better than this
 
@@ -64,6 +65,7 @@ function popevolve(f::Function, gen::Function, t_lim;
     verbosity = 1,
     threads = false,
     parallel = false,
+    procs = parallel ? nworkers() : 0, 
     randline = Inf,
     stop_val = sense == :Max ? Inf : -Inf
 )
@@ -76,6 +78,10 @@ function popevolve(f::Function, gen::Function, t_lim;
         comp = <
     end
     keepbest(a,b) = comp(first_number(a), first_number(b)) ? a : b
+
+    if procs > 0
+        parallel = true
+    end
 
     @assert !(parallel && threads)
 
@@ -92,8 +98,8 @@ function popevolve(f::Function, gen::Function, t_lim;
     while time() < t_stop
         nruns += 1
         pop = [mapin(gen()) for i in 1:n] # could run too long
-        opt = popevolve(f, pop, t_stop-time(); verbosity=max(0,verbosity-1),
-         mapin, sense, threads, parallel, conv_tol, randline, stop_val, totrounds)
+        opt = popevolve_pop(f, pop, t_stop-time(); verbosity=max(0,verbosity-1),
+         mapin, sense, threads, procs, conv_tol, randline, stop_val, totrounds)
 
         val = opt.bestval
         a = opt.best
@@ -129,23 +135,25 @@ function try6(f::Function, mapin, x0, del, comp)
     return bestt, bestval
 end
 
-# this is one of the main routines
-function popevolve(f::Function, pop::AbstractArray{Array{T,N},1}, t_lim;
+# this is one of the main routines, it runs from a population.
+function popevolve_pop(f::Function, pop::AbstractArray{Array{T,N},1}, t_lim;
     mapin=identity,
     sense = :Max,
     conv_tol = 1e-6,
     verbosity = 1,
     threads = false,
-    parallel = false,
+    procs = 0,
     randline = Inf,
     stop_val = sense == :Max ? Inf : -Inf,
     totrounds = []
     ) where {T,N}
 
+    parallel = procs > 0
+
     @assert !(parallel && threads)
 
     if parallel
-        return popevolve_par(f, pop, t_lim; 
+        return popevolve_par(f, pop, t_lim; procs,
         mapin, sense, conv_tol, randline, verbosity, stop_val, totrounds)
     end
 
@@ -287,22 +295,28 @@ function popevolve(f::Function, x0::AbstractArray{Float64}, t_lim;
     conv_tol = 1e-6,
     verbosity = 1,
     threads = false,
-    parallel = false,
+    procs = 0,
     randline = Inf,
     stop_val = sense == :Max ? Inf : -Inf
 )
+
+    if procs > 0
+        parallel = true
+    end
+
     @assert !(parallel && threads)
 
     n = n_fac*length(x0)
     pop = [mapin(randn(size(x0))) for i in 1:n]
 
-    popevolve(f, pop, t_lim; verbosity, mapin, sense, threads, parallel, conv_tol, randline, stop_val)
+    popevolve_pop(f, pop, t_lim; verbosity, mapin, sense, threads, procs, conv_tol, randline, stop_val)
 
 end
 
 
 function popevolve_par(f::Function, pop::AbstractArray{Array{T,N},1}, t_lim;
     mapin=identity,
+    procs=0,
     sense = :Max,
     conv_tol = 1e-6,
     verbosity = 1,
@@ -310,6 +324,10 @@ function popevolve_par(f::Function, pop::AbstractArray{Array{T,N},1}, t_lim;
     stop_val = sense == :Max ? Inf : -Inf,
     totrounds = []
     ) where {T,N}
+
+    if procs == 0
+        error("should not get to this code with procs = 0")
+    end
 
     @assert sense==:Max || sense==:Min
     if sense == :Max
@@ -340,7 +358,10 @@ function popevolve_par(f::Function, pop::AbstractArray{Array{T,N},1}, t_lim;
     init_pop_computed = true
 
     #vals = pmap(f,pop)
-    vals = pmap(pop) do p
+
+    pool = WorkerPool(2:min(nprocs(), procs+1))
+
+    vals = pmap(pool, pop) do p
         try 
             if time() < t_stop
                 f(p)
@@ -382,7 +403,7 @@ function popevolve_par(f::Function, pop::AbstractArray{Array{T,N},1}, t_lim;
             dels = [(de = randn(size(x)); de*norm(x)/norm(de)) for x in dels]
         end
 
-        pairs = pmap(zip(pop,dels)) do (p,del)
+        pairs = pmap(pool, zip(pop,dels)) do (p,del)
             if norm(del) < 1e-15
                return p, f(mapin(p)) 
             else
@@ -464,7 +485,7 @@ end
 
 Generates and evolves a population of potential solutions to minimize the function f.
 Following an approach like NelderMead, but with random choices.
-Recoomend pop size to be 2*dimension.
+Recommend pop size to be 2*dimension.
 
 # Arguments
 - `pop' is just the initial population.

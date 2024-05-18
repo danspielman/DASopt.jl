@@ -364,7 +364,7 @@ It is based on optim_wrap_many and try_many_trans.
 The reason is is not inside of those is that it violates the abstraction of
 try_many_trans by updating the time left for Optim at each call.
 
-`procs` is the number of cores on which it runs.
+`procs` is the number of cores on which it runs. Probably equals nworkers()
 """
 function optim_wrap_tlim(sense, f::Function, gen::Function, mapin=identity; t_lim = 0,
     procs = 0,
@@ -399,12 +399,12 @@ function optim_wrap_tlim(sense, f::Function, gen::Function, mapin=identity; t_li
     parallel = isdefined(Main, :nprocs) && nprocs() > 1 && procs > 1
 
     if parallel
-        capture_iters = SharedVector(zeros(Int, procs))
+        capture_iters = SharedVector(zeros(Int, procs+1))
         for j in 1:procs
             capture_iters[j] = 0
         end
 
-        capture_converged = SharedVector(zeros(Int, procs))
+        capture_converged = SharedVector(zeros(Int, procs+1))
         for j in 1:procs
             capture_converged[j] = 0
         end
@@ -461,9 +461,9 @@ function optim_wrap_tlim(sense, f::Function, gen::Function, mapin=identity; t_li
         a = sub()
         iters = capture_iters[1]
         n_converged = capture_converged[1]
-    else
+    else    
         keepbest(a,b) = comp(first_number(a), first_number(b)) ? a : b
-        outputs = pmap(j->sub(j), 1:procs)
+        outputs = pmap(j->sub(j), 2:(1+procs))
         a = reduce(keepbest, outputs)
         iters = sum(capture_iters)
         n_converged = sum(capture_converged)

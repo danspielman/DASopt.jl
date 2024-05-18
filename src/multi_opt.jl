@@ -116,7 +116,7 @@ function multi_opt(sense, f::Function, gen::Function, mapin=identity; t_lim = 0,
 
     val, x = popevolve(sense, f, gen, mapin; 
     t_lim, verbosity=sub_verbosity, stop_val,
-    parallel = (procs > 0)
+    procs
     )
 
     if comp(val, bestval)

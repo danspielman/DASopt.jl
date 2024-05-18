@@ -97,7 +97,16 @@ function popevolve(f::Function, gen::Function, t_lim;
 
     while time() < t_stop
         nruns += 1
-        pop = [mapin(gen()) for i in 1:n] # could run too long
+
+        if parallel 
+            pool = WorkerPool(2:min(nprocs(), procs+1))
+            pop = pmap(pool, 1:n) do _
+                mapin(gen())                
+            end
+        else
+            pop = [mapin(gen()) for i in 1:n] # could run too long
+        end
+
         opt = popevolve_pop(f, pop, t_stop-time(); verbosity=max(0,verbosity-1),
          mapin, sense, threads, procs, conv_tol, randline, stop_val, totrounds)
 
@@ -307,7 +316,19 @@ function popevolve(f::Function, x0::AbstractArray{Float64}, t_lim;
     @assert !(parallel && threads)
 
     n = n_fac*length(x0)
-    pop = [mapin(randn(size(x0))) for i in 1:n]
+
+    sz = size(x0)
+
+    if parallel 
+        pool = WorkerPool(2:min(nprocs(), procs+1))
+        pop = pmap(pool, 1:n) do _
+            mapin(randn(sz))                
+        end
+    else
+        pop = [mapin(randn(sz)) for i in 1:n] # could run too long
+    end
+
+    # pop = [mapin(randn(size(x0))) for i in 1:n]
 
     popevolve_pop(f, pop, t_lim; verbosity, mapin, sense, threads, procs, conv_tol, randline, stop_val)
 

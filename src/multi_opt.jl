@@ -42,6 +42,8 @@ function multi_opt(sense, f::Function, gen::Function, mapin=identity; t_lim = 0,
     bestx = copy(x)
     bestalg = "NM"
 
+    verbosity > 1 && println("NM : ", val)
+
     n_iters = report_iters[1]
     n_converged = report_converged[1]
     fac = 1
@@ -61,8 +63,9 @@ function multi_opt(sense, f::Function, gen::Function, mapin=identity; t_lim = 0,
             bestval = val
             bestx = copy(x)
             bestalg = "NM_$fac"
-            verbosity > 1 && println(bestalg, " ", bestval)
         end
+
+        verbosity > 1 && println("NM_$fac : ", val)
 
         n_iters = report_iters[1]
         n_converged = report_converged[1]
@@ -80,9 +83,10 @@ function multi_opt(sense, f::Function, gen::Function, mapin=identity; t_lim = 0,
         bestval = val
         bestx = copy(x)
         bestalg = "LBFGS"
-        verbosity > 1 && println(bestalg, " ", bestval)
     end
     
+    verbosity > 1 && println("LBFGS : ", val)
+
 
     n_iters = report_iters[1]
     n_converged = report_converged[1]
@@ -104,8 +108,9 @@ function multi_opt(sense, f::Function, gen::Function, mapin=identity; t_lim = 0,
             bestval = val
             bestx = copy(x)
             bestalg = "LBFGS_$fac"
-            verbosity > 1 && println(bestalg, " ", bestval)
         end
+
+        verbosity > 1 && println("LBFGS_$fac : ", val)
 
         n_iters = report_iters[1]
         n_converged = report_converged[1]
@@ -122,9 +127,11 @@ function multi_opt(sense, f::Function, gen::Function, mapin=identity; t_lim = 0,
     if comp(val, bestval)
         bestval = val
         bestx = copy(x)
-        bestalg = "DE"
-        verbosity > 1 && println(bestalg, " ", bestval)
+        bestalg = "Popevolve"
     end
+
+    verbosity > 1 && println("Popevolve: ", val)
+
 
     if verbosity > 0
         if verbosity > 0

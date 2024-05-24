@@ -135,7 +135,7 @@ function multi_opt(sense, f::Function, gen::Function, mapin=identity; t_lim = 0,
 
     if verbosity > 0
         if verbosity > 0
-            print("Ran for $(time()-t0) seconds. Winning alg was $(bestalg).")
+            print("Ran for $(time()-t0) seconds. Best alg: $(bestalg). ")
         end
         println("Val: $bestval")
 #        println("$(a[2])")

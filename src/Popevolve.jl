@@ -259,6 +259,16 @@ function popevolve_pop(f::Function, pop::AbstractArray{Array{T,N},1}, t_lim;
 
                     del = pop[i] - pop[j]
 
+                    if iszero(mod(round, randline))
+                        si = size(del)
+                        de = randn(si...)
+                        if rand() < 1/2
+                            r = rand(si...)
+                            mask = r .<= 2*minimum(r)
+                            de .*= mask
+                        end
+                        del = de*norm(del)/norm(de)
+                    end
 
                     opt = optimize(t->sgn*f(mapin(pop[k] + t*del)), -2, 2, Brent(), iterations = 10)
                     t = opt.minimizer
@@ -421,7 +431,18 @@ function popevolve_par(f::Function, pop::AbstractArray{Array{T,N},1}, t_lim;
 
         if iszero(mod(round, randline))
             verbosity == 3 && println("Random direction")
-            dels = [(de = randn(size(x)); de*norm(x)/norm(de)) for x in dels]
+            for i in 1:length(dels)
+                si = size(dels[i])
+                del = randn(si...)
+                if rand() < 1/2
+                    r = rand(si...)
+                    mask = r .<= 2*minimum(r)
+                    del .*= mask
+                end
+                dels[i] = del*norm(dels[i])/norm(del)
+            end
+
+            #dels = [(de = randn(size(x)); de*norm(x)/norm(de)) for x in dels]
         end
 
         pairs = pmap(pool, zip(pop,dels)) do (p,del)

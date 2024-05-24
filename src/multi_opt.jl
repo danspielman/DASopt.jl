@@ -120,7 +120,7 @@ function multi_opt(sense, f::Function, gen::Function, mapin=identity; t_lim = 0,
     # popevolve
 
     val, x = popevolve(sense, f, gen, mapin; 
-    t_lim, verbosity=sub_verbosity, stop_val,
+    t_lim, verbosity=sub_verbosity, stop_val, randline = 4,
     procs
     )
 

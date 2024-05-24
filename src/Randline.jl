@@ -1,12 +1,26 @@
+
+randline(sense::typeof(min), obj::Function, args...; kwargs...) = randline(:Min, obj, args...; kwargs...)
+randline(sense::typeof(max), obj::Function, args...; kwargs...) = randline(:Max, obj, args...; kwargs...)
+
+randline(sense::Symbol, f::Function, x0, mapin = identity; 
+    t_lim = Inf,
+    max_its = Inf,
+    verbosity = 0,
+    tol = 1e-7
+) = randline(f, x0, mapin; 
+    tol, t_lim, max_its, sense, verbosity)    
+
+
+
 """
-    x, val = randline(f, x0, mapin; 
+    val, x = randline(f, x0, mapin; 
         tol = 1e-7,
         t_lim = Inf,
-        max_its = Inf,
+        max_its = 10 n log n (if t_lim not set. o/w is Inf)
         sense = :Max,
         verbosity = 0)
 
-Optimize by performing linesearches in random directions.
+Optimize by performing linesearches in random directions, which are sparse with probability 1/2.
 Stops when make less than tol progress for length(x0) iterations in a row,
 or after t_lim seconds.
 
@@ -20,7 +34,14 @@ function randline(f::Function, x0, mapin;
     sense = :Max,
     verbosity = 0)
 
+    sense = sensemap(sense)
+
     @assert sense==:Max || sense==:Min
+
+    if t_lim == Inf && max_its == Inf
+        max_its = round(Int, 10*length(x0)*log(length(x0)))
+        verbosity > 1 && println("because max_its and t_lim Inf, set max_its to $(max_its)")
+    end
 
     if sense == :Max
         sgn = -1
@@ -48,7 +69,15 @@ function randline(f::Function, x0, mapin;
     while (time() - t0 < t_lim) && stag_rounds < max_stag && iters < max_its
         iters += 1
 
-        del = randn(size(x))
+        del = randn(size(x)...)
+
+        # with prob 1/2, mask to make it sparse
+        if rand() < 1/2
+            r = rand(size(x)...)
+            mask = r .<= 2*minimum(r)
+            del .*= mask
+        end
+
         del = del * norm(x) / norm(del)
 
         opt = optimize(t->sgn*f(mapin(x + t*del)), -2*sizet, 2*sizet, Brent(), iterations = 10)
@@ -96,7 +125,7 @@ function randline(f::Function, x0, mapin;
         end
     end
 
-    return x, val
+    return val, x
 
 end
 

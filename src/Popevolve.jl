@@ -87,7 +87,9 @@ function popevolve(f::Function, gen::Function, t_lim;
 
     n = n_fac*length(gen())
 
-    t_stop = time() + t_lim
+    t0 = time()
+
+    t_stop = t0 + t_lim
 
  
     besta = []
@@ -121,7 +123,8 @@ function popevolve(f::Function, gen::Function, t_lim;
     end
 
     if verbosity > 0
-        println("Best val: $bestval, after $nruns runs with a total of $(totrounds[1]) rounds.")
+        t_tot = round(Int,time()-t0)
+        println("Best val: $bestval, after $nruns runs with a total of $(totrounds[1]) rounds and $(t_tot) seconds")
     end
 
     return bestval, besta

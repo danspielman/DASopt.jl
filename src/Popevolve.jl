@@ -42,7 +42,7 @@ function popevolve(sense::Symbol, f::Function, gen::Function, mapin = identity;
     kwargs...
 )
     if t_lim == -Inf
-        verbosity > 0 && println("Setting t_lim is strongly recommended. It was just set to 60 seconds by default.")
+        verbosity > 0 && daslog("Setting t_lim is strongly recommended. It was just set to 60 seconds by default.")
         t_lim = 60
     end
 
@@ -124,7 +124,7 @@ function popevolve(f::Function, gen::Function, t_lim;
 
     if verbosity > 0
         t_tot = round(Int,time()-t0)
-        println("Best val: $bestval, after $nruns runs with a total of $(totrounds[1]) rounds and $(t_tot) seconds")
+        daslog("Best val: $bestval, after $nruns runs with a total of $(totrounds[1]) rounds and $(t_tot) seconds")
     end
 
     return bestval, besta
@@ -190,7 +190,7 @@ function popevolve_pop(f::Function, pop::AbstractArray{Array{T,N},1}, t_lim;
 
     n = length(pop)
 
-    verbosity > 1 && println("initial pop size $(n).")
+    verbosity > 1 && daslog("initial pop size $(n).")
 
     t0 = time()
 
@@ -199,21 +199,21 @@ function popevolve_pop(f::Function, pop::AbstractArray{Array{T,N},1}, t_lim;
         vals[i] = f(pop[i])
         if time() > t0 + t_lim
             verbosity > 0 && 
-            println("hit t_lim before evaluating f on initial population.")    
+            daslog("hit t_lim before evaluating f on initial population.")    
             break
         end
     end
     # vals = f.(pop) # need to check time on this.
 
     bestval = bestimum(vals)
-    verbosity > 1  && println("initial best: $(bestval)")
+    verbosity > 1  && daslog("initial best: $(bestval)")
 
     t1 = time()
     round = 0
 
     while time() < t0 + t_lim && comp(stop_val, bestval)
         if time() > t1 + t_lim/9
-            verbosity > 1 && println("Round $(round): $(bestimum(vals))")
+            verbosity > 1 && daslog("Round $(round): $(bestimum(vals))")
             t1 = time()
         end
 
@@ -288,7 +288,7 @@ function popevolve_pop(f::Function, pop::AbstractArray{Array{T,N},1}, t_lim;
         worst = worstimum(vals)
 
         if verbosity == 3
-            println("Round $(round): best: $(best), worst: $(worst).")
+            daslog("Round $(round): best: $(best), worst: $(worst).")
         end
 
         if abs(best - worst) < conv_tol
@@ -299,7 +299,7 @@ function popevolve_pop(f::Function, pop::AbstractArray{Array{T,N},1}, t_lim;
     i = argbest(vals)
     opt = (best=pop[i], bestval=vals[i], pop=pop, rounds=round, secs=time()-t0)
 
-    verbosity > 0 && println("final: $(vals[i]), after $(round) rounds and $(time()-t0) seconds.")
+    verbosity > 0 && daslog("final: $(vals[i]), after $(round) rounds and $(time()-t0) seconds.")
 
     if length(totrounds) > 0
         totrounds[1] += round
@@ -384,7 +384,7 @@ function popevolve_par(f::Function, pop::AbstractArray{Array{T,N},1}, t_lim;
 
     n = length(pop)
 
-    verbosity > 1 && println("initial pop size $(n).")
+    verbosity > 1 && daslog("initial pop size $(n).")
 
     t0 = time()
     t_stop = t0 + t_lim
@@ -409,11 +409,11 @@ function popevolve_par(f::Function, pop::AbstractArray{Array{T,N},1}, t_lim;
         end
     end
 
-    verbosity > 0 && !init_pop_computed && println("hit t_lim before evaluating f on initial population. (in par)")    
+    verbosity > 0 && !init_pop_computed && daslog("hit t_lim before evaluating f on initial population. (in par)")    
 
 
     bestval = bestimum(vals)
-    verbosity > 1 && println("initial best: $(bestval)")
+    verbosity > 1 && daslog("initial best: $(bestval)")
 
     t1 = time()
 
@@ -421,7 +421,7 @@ function popevolve_par(f::Function, pop::AbstractArray{Array{T,N},1}, t_lim;
 
     while (time() < t_stop && comp(stop_val, bestval))
         if time() > t1 + t_lim/9
-            verbosity > 1 && println("Round $(round): $(bestimum(vals))")
+            verbosity > 1 && daslog("Round $(round): $(bestimum(vals))")
             t1 = time()
         end
 
@@ -433,7 +433,7 @@ function popevolve_par(f::Function, pop::AbstractArray{Array{T,N},1}, t_lim;
         dels = [pop[ip[k]] - pop[jp[k]] for k in 1:n]
 
         if iszero(mod(round, randline))
-            verbosity == 3 && println("Random direction")
+            verbosity == 3 && daslog("Random direction")
             for i in 1:length(dels)
                 si = size(dels[i])
                 del = randn(si...)
@@ -474,7 +474,7 @@ function popevolve_par(f::Function, pop::AbstractArray{Array{T,N},1}, t_lim;
                     end
     
                 catch err
-                    println(err)
+                    daslog(err)
                 end
 
                 return p, bestval
@@ -498,7 +498,7 @@ function popevolve_par(f::Function, pop::AbstractArray{Array{T,N},1}, t_lim;
         worst = worstimum(vals)
 
         if verbosity == 3
-            println("Round $(round): best: $(best), worst: $(worst).")
+            daslog("Round $(round): best: $(best), worst: $(worst).")
         end
 
         if abs(best - worst) < conv_tol
@@ -508,7 +508,7 @@ function popevolve_par(f::Function, pop::AbstractArray{Array{T,N},1}, t_lim;
 
     i = argbest(vals)
     opt = (best=pop[i], bestval=vals[i], pop=pop, rounds=round, secs=time()-t0)
-    verbosity > 0 && println("final: $(vals[i]), after $(round) rounds and $(time()-t0) seconds.")
+    verbosity > 0 && daslog("final: $(vals[i]), after $(round) rounds and $(time()-t0) seconds.")
 
     if length(totrounds) > 0
         totrounds[1] += round
@@ -577,7 +577,7 @@ function popnm(f::Function, pop::AbstractArray{Array{T,N},1}, t_lim;
 
     t0 = time()
 
-    verbose && println("initial best: $(minimum(vals))")
+    verbose && daslog("initial best: $(minimum(vals))")
 
     t1 = time()
     round = 0
@@ -586,7 +586,7 @@ function popnm(f::Function, pop::AbstractArray{Array{T,N},1}, t_lim;
 
     while (time() < t0 + t_lim)
         if time() > t1 + t_lim/9
-            verbose && println("Round $(round): $(bestimum(vals))")
+            verbose && daslog("Round $(round): $(bestimum(vals))")
             t1 = time()
         end
 
@@ -617,7 +617,7 @@ function popnm(f::Function, pop::AbstractArray{Array{T,N},1}, t_lim;
         worst = worstimum(vals)
 
         if verbosity == 2 && counter() == 1
-            println("Iteration $(round): best: $(best), worst: $(worst).")
+            daslog("Iteration $(round): best: $(best), worst: $(worst).")
         end
 
         if abs(best - worst) < conv_tol
@@ -630,7 +630,7 @@ function popnm(f::Function, pop::AbstractArray{Array{T,N},1}, t_lim;
     i = argbest(vals)
     opt = (best=pop[i], bestval=vals[i], pop=pop)
 
-    verbose && println("final: $(vals[i]), after $(round) rounds.")
+    verbose && daslog("final: $(vals[i]), after $(round) rounds.")
 
     return opt
 

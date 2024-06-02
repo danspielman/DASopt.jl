@@ -42,19 +42,23 @@ function multi_opt(sense, f::Function, gen::Function, mapin=identity; t_lim = 0,
     bestx = copy(x)
     bestalg = "NM"
 
-    verbosity > 1 && println("NM : ", val)
+    verbosity > 1 && daslog("NM : ", val)
 
     n_iters = report_iters[1]
     n_converged = report_converged[1]
     fac = 1
+
+    t_lim2 = t_lim
+
     while (n_iters > 10*(procs+1)) && (n_converged < 0.1 * n_iters)
         fac *= 10
+        t_lim2 /= 2
 
         report_iters = []
         report_converged = []
 
         val, x = optim_wrap_tlim(sense, f, gen, mapin; 
-        t_lim, procs, verbosity=sub_verbosity, stop_val,
+        t_lim2, procs, verbosity=sub_verbosity, stop_val,
         report_iters, report_converged, 
         nrounds, 
         options = Optim.Options(iterations=fac*1_000))
@@ -65,7 +69,7 @@ function multi_opt(sense, f::Function, gen::Function, mapin=identity; t_lim = 0,
             bestalg = "NM_$fac"
         end
 
-        verbosity > 1 && println("NM_$fac : ", val)
+        verbosity > 1 && daslog("NM_$fac : ", val)
 
         n_iters = report_iters[1]
         n_converged = report_converged[1]
@@ -85,20 +89,24 @@ function multi_opt(sense, f::Function, gen::Function, mapin=identity; t_lim = 0,
         bestalg = "LBFGS"
     end
     
-    verbosity > 1 && println("LBFGS : ", val)
+    verbosity > 1 && daslog("LBFGS : ", val)
 
 
     n_iters = report_iters[1]
     n_converged = report_converged[1]
     fac = 1
+    t_lim2 = t_lim
+    
     while (n_iters > 10*(procs+1)) && (n_converged < 0.1 * n_iters)
         fac *= 10
+        t_lim2 /= 2
+
 
         report_iters = []
         report_converged = []
 
         val, x = optim_wrap_tlim(sense, f, gen, mapin; 
-        t_lim, procs, verbosity=sub_verbosity, stop_val,
+        t_lim2, procs, verbosity=sub_verbosity, stop_val,
         report_iters, report_converged, 
         options = Optim.Options(iterations=fac*1_000),
         optfunc = LBFGS(;linesearch = LineSearches.BackTracking())
@@ -110,7 +118,7 @@ function multi_opt(sense, f::Function, gen::Function, mapin=identity; t_lim = 0,
             bestalg = "LBFGS_$fac"
         end
 
-        verbosity > 1 && println("LBFGS_$fac : ", val)
+        verbosity > 1 && daslog("LBFGS_$fac : ", val)
 
         n_iters = report_iters[1]
         n_converged = report_converged[1]
@@ -130,16 +138,16 @@ function multi_opt(sense, f::Function, gen::Function, mapin=identity; t_lim = 0,
         bestalg = "Popevolve"
     end
 
-    verbosity > 1 && println("Popevolve: ", val)
+    verbosity > 1 && daslog("Popevolve: ", val)
 
 
     if verbosity > 0
         if verbosity > 0
-            print("Ran for $(time()-t0) seconds. Best alg: $(bestalg). ")
+            daslo("Ran for $(time()-t0) seconds. Best alg: $(bestalg). ")
         end
-        println("Val: $bestval")
-#        println("$(a[2])")
-#        println("Val: $(a[1])")
+        daslog("Val: $bestval")
+#        daslog("$(a[2])")
+#        daslog("Val: $(a[1])")
     end
 
     return bestval, bestx

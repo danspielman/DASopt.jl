@@ -27,5 +27,8 @@ export multi_opt
 include("dastest.jl")
 export dastest
 
+include("daslog.jl")
+export start_logfile, daslog, daslo, daslog_stat, merge_worker_logs
+
 
 end

@@ -271,6 +271,10 @@ function optim_wrap_tlim1(sense, f::Function, gen::Function, mapin=identity; t_l
 
     info_to_file(txt_file)
 
+    if nrounds > 1
+        t_lim /= nrounds
+    end
+
     t0 = time()
     t_stop = t0 + t_lim
 
@@ -313,12 +317,12 @@ function optim_wrap_tlim1(sense, f::Function, gen::Function, mapin=identity; t_l
             end
             !isempty(file_base) && save(jld_file, "bests", bests)
         elseif verbosity > 2
-            println("iteration: $(i), val: $(val)")
+            daslog("iteration: $(i), val: $(val)")
         end
     end
 
     if verbosity > 0
-        println("Ran for $(i) iterations (converged on $(n_converged)) and $(time()-t0) seconds. Val: $(first_number(besta))")
+        daslog("Ran for $(i) iterations (converged on $(n_converged)) and $(time()-t0) seconds. Val: $(first_number(besta))")
     end
 
     if thisid > 0 && length(iters) >= thisid
@@ -474,9 +478,9 @@ function optim_wrap_tlim(sense, f::Function, gen::Function, mapin=identity; t_li
 
     if verbosity > 0
         if verbosity == 1
-            print("Ran for $(time()-t0) seconds and $iters total iters (converged $(n_converged)). ")
+            daslo("Ran for $(time()-t0) seconds and $iters total iters (converged $(n_converged)). ")
         end
-        println("Val: $(a[1])")
+        daslog("Val: $(a[1])")
 #        println("$(a[2])")
 #        println("Val: $(a[1])")
     end

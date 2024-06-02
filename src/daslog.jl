@@ -94,7 +94,9 @@ function default_logname(;progname=true, hostname=true, args=true, date=true)
     end
 
     if hostname 
-        s *= (!isempty(s) ? "_" : "") * split(gethostname(), ".")[1]
+        hn = split(gethostname(), ".")[1]
+        hn = split(hn, "-")[1]
+        s *= (!isempty(s) ? "_" : "") * hn
     end
 
     if args

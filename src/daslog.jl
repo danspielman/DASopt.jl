@@ -7,8 +7,9 @@ worker_stdout = false
 """
     daslog(args...)
 
-Use in place of println. Will got to stdout by default.
-But, can also go to log file.
+Use in place of println. Will go to stdout by default.
+But, can also go to a log file.
+By default, worker processes will send output to log files, but not to stdout.
 """
 function daslog(args...)
     daslo(args..., "\n")
@@ -48,7 +49,11 @@ function daslo(args...)
     end
 end
 
+"""
+    daslog_stat()
 
+Reports the name of the log file and the flags.
+"""
 function daslog_stat()
     if isempty(DASopt.log_file)
         println("no log file")
@@ -79,6 +84,9 @@ start_logfile() = start_logfile(default_logname())
 
 """
     default_logname(;progname=true, hostname=true, args=true, date=true)
+
+Concatenates a progname, hostname, input args, and date (up to hours:minutes),
+unless those flags are false or they can not be found.
 """
 function default_logname(;progname=true, hostname=true, args=true, date=true)
 
@@ -118,6 +126,12 @@ function default_logname(;progname=true, hostname=true, args=true, date=true)
 
 end
 
+"""
+    merge_worker_logs()
+
+Merges the log files created by workers into the main log file,
+and deletes the worker files after.
+"""
 function merge_worker_logs()
     if isempty(DASopt.log_file)
         println("warning: there is no log file to merge")

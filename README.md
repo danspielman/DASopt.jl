@@ -344,7 +344,28 @@ These are some other options that can be set for some of these functions.
 - `n_starts` : rather than trying to optimize starting from a random vector (output by `gen`), we take `n_starts` samples from `gen`, find the best of them, and then start optimizing from it.
 
 
-## more documentation
+# logging 
+
+By default, the output from these routines will go to stdout. 
+But, the package has some extra logging features.
+Your code can use them, too.
+
+Bascially, replace any invocation of `println`, without a file handle, with `daslog`. Replace `print` by `daslo`.
+The default behavior of `daslog("a string")` is to send it to stdout, unless this was called by a worker process in which case it will be ignored.
+
+If you want to allow worker processes to send to stdout, set `DASopt.worker_stdout` to `true`.
+
+If you start a log file, then everything passed to `daslog` will also be written to the log file. To create a log file named "my.log", type 
+type `set_logfile("my.log")`. If you want to use a default logfile (concatenating the program being run, hostname, arguments, and time, if each exists), then just type `set_logfile()`.
+I usually use the default.
+If you like your log so much that you don't want to see output to stdout, then set `DASopt.to_stdout = false`.
+
+Finally, to avoid collisions, worker process all write to their own log file, obtained by appending a `_p(workernum)` to the name of the main log file. To have the content of these merged back into the main log file, and delete the individual worker logs, run `merge_worker_logs`.
+
+
+
+
+# more documentation
 
 
 To build the documentation for this locally, go to the package directory

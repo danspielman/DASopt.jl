@@ -229,7 +229,12 @@ try_many_trans by updating the time left for Optim at each call.
 
 Counts how many calls to optim converge.
 """
-function optim_wrap_tlim1(sense, f::Function, gen::Function, mapin=identity; t_lim = 0,
+function optim_wrap_tlim1(args...; kwargs...)
+    out = optim_wrap_tlim1_sub(args...; kwargs...)[1:(end-2)]
+    return out
+end
+
+function optim_wrap_tlim1_sub(sense, f::Function, gen::Function, mapin=identity; t_lim = 0,
     file_base = "",
     verbose = false,
     verbosity = 1 + verbose,
@@ -240,8 +245,6 @@ function optim_wrap_tlim1(sense, f::Function, gen::Function, mapin=identity; t_l
     options = Optim.Options(),
     n_starts = 0,
     record = nothing,
-    iters = [],
-    report_converged = [],
     thisid = 0,
     stop_val = sensemap(sense) == :Max ? Inf : -Inf)
 
@@ -253,6 +256,10 @@ function optim_wrap_tlim1(sense, f::Function, gen::Function, mapin=identity; t_l
         bestval = Inf
         comp = <
     end
+
+    iters = 0
+    n_converged = 0
+
 
     keepbest(a,b) = comp(first_number(a), first_number(b)) ? a : b
 
@@ -325,13 +332,7 @@ function optim_wrap_tlim1(sense, f::Function, gen::Function, mapin=identity; t_l
         daslog("Ran for $(i) iterations (converged on $(n_converged)) and $(time()-t0) seconds. Val: $(first_number(besta))")
     end
 
-    if thisid > 0 && length(iters) >= thisid
-        iters[thisid] = i
-    end
-
-    if thisid > 0 && length(report_converged) >= thisid
-        report_converged[thisid] = n_converged
-    end
+    iters = i
 
     # REMOVE LATER: IS CHECKING FOR DETERMINISM
     #=
@@ -343,7 +344,7 @@ function optim_wrap_tlim1(sense, f::Function, gen::Function, mapin=identity; t_l
     end
     =#
 
-    return besta
+    return besta..., iters, n_converged
 end
 
 """
@@ -402,6 +403,7 @@ function optim_wrap_tlim(sense, f::Function, gen::Function, mapin=identity; t_li
 
     parallel = isdefined(Main, :nprocs) && nprocs() > 1 && procs > 1
 
+    #=
     if parallel
         capture_iters = SharedVector(zeros(Int, procs+1))
         for j in 1:procs
@@ -417,13 +419,13 @@ function optim_wrap_tlim(sense, f::Function, gen::Function, mapin=identity; t_li
         capture_iters = Int[0]
         capture_converged = Int[0]
     end
-
+    =#
 
     # sub_verbosity = procs > 0 ? max(0,verbosity-1) : verbosity
     sub_verbosity = max(0,verbosity-1)
 
     if parallel
-        sub = j->optim_wrap_tlim1(sense, f, gen, mapin; 
+        sub = j->optim_wrap_tlim1_sub(sense, f, gen, mapin; 
             t_lim,
             file_base,
             verbosity = sub_verbosity, 
@@ -434,12 +436,10 @@ function optim_wrap_tlim(sense, f::Function, gen::Function, mapin=identity; t_li
             options,
             n_starts,
             record,
-            iters = capture_iters,
-            report_converged = capture_converged,
             thisid = j,
             stop_val)
     else
-        sub = ()->optim_wrap_tlim1(sense, f, gen, mapin; 
+        sub = ()->optim_wrap_tlim1_sub(sense, f, gen, mapin; 
         t_lim,
         file_base,
         verbosity = sub_verbosity,
@@ -450,8 +450,6 @@ function optim_wrap_tlim(sense, f::Function, gen::Function, mapin=identity; t_li
         options,
         n_starts,
         record,
-        iters = capture_iters,
-        report_converged = capture_converged,
         thisid = 1,        
         stop_val)       
     end
@@ -463,14 +461,19 @@ function optim_wrap_tlim(sense, f::Function, gen::Function, mapin=identity; t_li
 
     if !parallel
         a = sub()
-        iters = capture_iters[1]
-        n_converged = capture_converged[1]
+        iters = a[end-1]
+        n_converged = a[end]
+        a = a[1:(end-2)]
     else    
         keepbest(a,b) = comp(first_number(a), first_number(b)) ? a : b
+        addrest(a,b) = a[end-1:end] .+ b[end-1:end]
+        keepbest_addrest(a,b) = ((comp(first_number(a), first_number(b)) ? a[1:end-2] : b[1:end-2])..., 
+        addrest(a,b)...)
         outputs = pmap(j->sub(j), 2:(1+procs))
-        a = reduce(keepbest, outputs)
-        iters = sum(capture_iters)
-        n_converged = sum(capture_converged)
+        a = reduce(keepbest_addrest, outputs)
+        iters = a[end-1]
+        n_converged = a[end]
+        a = a[1:(end-2)]
     end
 
     isa(report_iters, Vector) && push!(report_iters, iters)

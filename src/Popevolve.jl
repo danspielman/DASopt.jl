@@ -77,7 +77,6 @@ function popevolve(f::Function, gen::Function, t_lim;
         bestval = Inf
         comp = <
     end
-    keepbest(a,b) = comp(first_number(a), first_number(b)) ? a : b
 
     if procs > 0
         parallel = true

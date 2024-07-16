@@ -30,6 +30,8 @@ function multi_opt(sense, f::Function, gen::Function, mapin=identity; t_lim = 0,
     
     t0 = time()
 
+    t_lim = t_lim / 5
+
     # NelderMead
 
     nrounds = mapin==identity ? 1 : 2
@@ -58,7 +60,7 @@ function multi_opt(sense, f::Function, gen::Function, mapin=identity; t_lim = 0,
         report_converged = []
 
         val, x = optim_wrap_tlim(sense, f, gen, mapin; 
-        t_lim2, procs, verbosity=sub_verbosity, stop_val,
+        t_lim = t_lim2, procs, verbosity=sub_verbosity, stop_val,
         report_iters, report_converged, 
         nrounds, 
         options = Optim.Options(iterations=fac*1_000))
@@ -106,7 +108,7 @@ function multi_opt(sense, f::Function, gen::Function, mapin=identity; t_lim = 0,
         report_converged = []
 
         val, x = optim_wrap_tlim(sense, f, gen, mapin; 
-        t_lim2, procs, verbosity=sub_verbosity, stop_val,
+        t_lim = t_lim2, procs, verbosity=sub_verbosity, stop_val,
         report_iters, report_converged, 
         options = Optim.Options(iterations=fac*1_000),
         optfunc = LBFGS(;linesearch = LineSearches.BackTracking())

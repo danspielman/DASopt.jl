@@ -36,6 +36,7 @@ function multi_opt(sense, f::Function, gen::Function, mapin=identity; t_lim = 0,
 
     nrounds = mapin==identity ? 1 : 2
 
+    verbosity > 1 && daslo("NM. ")
     val, x = optim_wrap_tlim(sense, f, gen, mapin; 
         t_lim, procs, verbosity=sub_verbosity, stop_val,
         report_iters, report_converged, nrounds)
@@ -43,8 +44,6 @@ function multi_opt(sense, f::Function, gen::Function, mapin=identity; t_lim = 0,
     bestval = val
     bestx = copy(x)
     bestalg = "NM"
-
-    verbosity > 1 && daslog("NM : ", val)
 
     n_iters = report_iters[1]
     n_converged = report_converged[1]
@@ -59,6 +58,7 @@ function multi_opt(sense, f::Function, gen::Function, mapin=identity; t_lim = 0,
         report_iters = []
         report_converged = []
 
+        verbosity > 1 && daslo("NM_$fac. ")
         val, x = optim_wrap_tlim(sense, f, gen, mapin; 
         t_lim = t_lim2, procs, verbosity=sub_verbosity, stop_val,
         report_iters, report_converged, 
@@ -71,8 +71,6 @@ function multi_opt(sense, f::Function, gen::Function, mapin=identity; t_lim = 0,
             bestalg = "NM_$fac"
         end
 
-        verbosity > 1 && daslog("NM_$fac : ", val)
-
         n_iters = report_iters[1]
         n_converged = report_converged[1]
 
@@ -80,6 +78,7 @@ function multi_opt(sense, f::Function, gen::Function, mapin=identity; t_lim = 0,
 
     # LBFGS
 
+    verbosity > 1 && daslo("LBFGS. ")
     val, x = optim_wrap_tlim(sense, f, gen, mapin; 
         t_lim, procs, verbosity=sub_verbosity, stop_val,
         report_iters, report_converged,
@@ -90,9 +89,6 @@ function multi_opt(sense, f::Function, gen::Function, mapin=identity; t_lim = 0,
         bestx = copy(x)
         bestalg = "LBFGS"
     end
-    
-    verbosity > 1 && daslog("LBFGS : ", val)
-
 
     n_iters = report_iters[1]
     n_converged = report_converged[1]
@@ -107,6 +103,7 @@ function multi_opt(sense, f::Function, gen::Function, mapin=identity; t_lim = 0,
         report_iters = []
         report_converged = []
 
+        verbosity > 1 && daslo("LBFGS_$fac. ")
         val, x = optim_wrap_tlim(sense, f, gen, mapin; 
         t_lim = t_lim2, procs, verbosity=sub_verbosity, stop_val,
         report_iters, report_converged, 
@@ -120,8 +117,6 @@ function multi_opt(sense, f::Function, gen::Function, mapin=identity; t_lim = 0,
             bestalg = "LBFGS_$fac"
         end
 
-        verbosity > 1 && daslog("LBFGS_$fac : ", val)
-
         n_iters = report_iters[1]
         n_converged = report_converged[1]
 
@@ -129,6 +124,8 @@ function multi_opt(sense, f::Function, gen::Function, mapin=identity; t_lim = 0,
     
     # popevolve
 
+
+    verbosity > 1 && daslo("Popevolve. ")
     val, x = popevolve(sense, f, gen, mapin; 
     t_lim, verbosity=sub_verbosity, stop_val, randline = 4,
     procs
@@ -139,8 +136,6 @@ function multi_opt(sense, f::Function, gen::Function, mapin=identity; t_lim = 0,
         bestx = copy(x)
         bestalg = "Popevolve"
     end
-
-    verbosity > 1 && daslog("Popevolve: ", val)
 
 
     if verbosity > 0

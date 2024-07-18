@@ -30,7 +30,7 @@ function multi_opt(sense, f::Function, gen::Function, mapin=identity; t_lim = 0,
     
     t0 = time()
 
-    t_lim = t_lim / 5
+    t_lim = t_lim / 3
 
     # NelderMead
 

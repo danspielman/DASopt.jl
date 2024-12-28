@@ -30,5 +30,7 @@ export dastest
 include("daslog.jl")
 export start_logfile, daslog, daslo, daslog_stat, merge_worker_logs
 
+include("find_many.jl")
+export find_many_0, find_many_crude
 
 end

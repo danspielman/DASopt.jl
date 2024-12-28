@@ -22,3 +22,22 @@ function sensemap(sense::Symbol)
     end
 end
 
+"""
+    bestval, comp, bestimum, argbest = bestfuns(sense)
+"""
+function bestfuns(sense)
+    sense = sensemap(sense)
+    if sense == :Max
+        bestval = -Inf
+        comp = >
+        bestimum = maximum
+        argbest = argmax
+    else
+        bestval = Inf
+        comp = <
+        bestimum = minimum
+        argbest = argmin
+    end
+    return bestval, comp, bestimum, argbest
+end
+

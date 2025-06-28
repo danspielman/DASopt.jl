@@ -356,7 +356,7 @@ The default behavior of `daslog("a string")` is to send it to stdout, unless thi
 If you want to allow worker processes to send to stdout, set `DASopt.worker_stdout` to `true`.
 
 If you start a log file, then everything passed to `daslog` will also be written to the log file. To create a log file named "my.log", type 
-type `set_logfile("my.log")`. If you want to use a default logfile (concatenating the program being run, hostname, arguments, and time, if each exists), then just type `set_logfile()`.
+type `start_logfile("my.log")`. If you want to use a default logfile (concatenating the program being run, hostname, arguments, and time, if each exists), then just type `start_logfile()`.
 I usually use the default.
 If you like your log so much that you don't want to see output to stdout, then set `DASopt.to_stdout = false`.
 

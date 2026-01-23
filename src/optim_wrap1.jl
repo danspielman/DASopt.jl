@@ -135,12 +135,13 @@ function optim_wrap_sub(sense, f::Function, gen::Function, mapin=identity;
 
     info_to_file(txt_file)
 
-    if nrounds > 1
-        t_lim /= nrounds
-        n_trials = div(n_trials, nrounds)
-    end
+    # # BIG WARNING! When the dimension of the problem is small, usually the first round takes up a lot more time than the other ones, so this is wasteful
+    # if nrounds > 1
+    #     t_lim /= nrounds
+    #     n_trials /= nrounds
+    # end
 
-    report = []
+    rep = []
     t_checks = t_lim .* report_checks
     it = 1
     
@@ -156,7 +157,7 @@ function optim_wrap_sub(sense, f::Function, gen::Function, mapin=identity;
         t1 = time() - t0
 
         if it <= length(t_checks) && t1 > t_checks[it]
-            push!(report, [bestval,t1])
+            push!(rep, [bestval,t1])
             it += 1
         end
 
@@ -195,7 +196,7 @@ function optim_wrap_sub(sense, f::Function, gen::Function, mapin=identity;
             besta = a
             push!(bests,a)
             if verbosity >= 2
-		        report(i, bestval, besta, txt_file)
+		        # report(i, bestval, besta, txt_file) # This function foes not work anymore! Not sure where it comes from...
             end
             !isempty(file_base) && save(jld_file, "bests", bests)
         elseif verbosity > 2
@@ -203,7 +204,7 @@ function optim_wrap_sub(sense, f::Function, gen::Function, mapin=identity;
         end
     end
 
-    # report != [] && push!(report, [bestval,time()-t0]) # JUST IN CASE THE LAST VALUE IS FOUND IN THE LAST ITERATION, COMMENT TO SKIP THIS
+    # rep != [] && push!(rep, [bestval,time()-t0]) # JUST IN CASE THE LAST VALUE IS FOUND IN THE LAST ITERATION, COMMENT TO SKIP THIS
 
     if verbosity > 0
         daslog("Ran for $(i) iterations (converged on $(n_converged)) and $(time()-t0) seconds. Val: $(first_number(besta))")
@@ -211,7 +212,7 @@ function optim_wrap_sub(sense, f::Function, gen::Function, mapin=identity;
 
     iters = i
 
-    return besta[1], besta[2], iters, n_converged, report
+    return besta[1], besta[2], iters, n_converged, rep
 end
 
 function optim_wrap_main(sense, f::Function, gen::Function, mapin=identity; 
@@ -304,7 +305,7 @@ function optim_wrap_main(sense, f::Function, gen::Function, mapin=identity;
 
     if !parallel
         a = sub()
-        report = a[end]
+        rep = a[end]
         n_converged = a[end-1]
         iters = a[end-2]
         a = a[1:(end-3)]
@@ -316,16 +317,16 @@ function optim_wrap_main(sense, f::Function, gen::Function, mapin=identity;
         outputs = pmap(j->sub(j), 2:(1+procs))
 
         outputs1 = [out[1:end-1] for out in outputs]
-        reports = sort(vcat([out[end] for out in outputs]...), by=x->x[2]) #sorting is inefficient, but shouldn't make a difference for reasonably large report_fac
+        reps = sort(vcat([out[end] for out in outputs]...), by=x->x[2]) #sorting is inefficient, but shouldn't make a difference for reasonably large report_fac
 
         a = reduce(keepbest_additers, outputs1)
-        report = clean_merged_reports(reports, procs, sense)
+        rep = clean_merged_reports(reps, procs, sense)
         iters = a[end-1]
         n_converged = a[end]
         a = a[1:(end-2)]
     end
 
-    isa(report_iters, Vector) && push!(report_iters, [iters,n_converged])
+    isa(report_iters, Vector) && push!(report_iters, [iters, n_converged]...)
 
     if verbosity > 0
         if verbosity == 1
@@ -333,14 +334,14 @@ function optim_wrap_main(sense, f::Function, gen::Function, mapin=identity;
         end
         daslog("Val: $(a[1])")
 
-        report != [] && daslo("Intermediate progress:")
-        if length(report) < 3 # still need to test this!
-            for rep in report
-                daslo(" found value $(rep[1]) after $(round(rep[2], digits=2))s")
+        rep != [] && daslo("Intermediate progress:")
+        if length(rep) < 3 # still need to test this!
+            for r in rep
+                daslo(" found value $(r[1]) after $(round(r[2], digits=2))s")
             end
         else
-            for rep in report
-                daslog("time: $(round(rep[2], digits=2))s, val: $(rep[1])")
+            for r in rep
+                daslog("time: $(round(r[2], digits=2))s, val: $(r[1])")
             end
         end
 #        println("$(a[2])")

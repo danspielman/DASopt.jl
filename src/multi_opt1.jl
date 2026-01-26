@@ -8,10 +8,6 @@ A combination of optimization algorithms.
 
 using DASopt, Optim, LineSearches
 
-include("optim_wrap1.jl")
-
-safeintdiv(a,b) = a == Inf ? Inf : a ÷ b
-
 function multi_opt(sense, f::Function, gen::Function, mapin=identity; t_lim = 0,
     procs = 0,
     verbosity = 0,
@@ -33,6 +29,9 @@ function multi_opt(sense, f::Function, gen::Function, mapin=identity; t_lim = 0,
     report_iters = []
 
     t_lim_NM = t_lim_LBFGS = t_lim_pop = 0
+
+    S = sum(t for (alg,t) in t_lims) 
+    map!(x->x/S, values(t_lims)) #normalizing weights so they sum to 1
 
     for alg in keys(t_lims)
         if lowercase(alg) == "nm"

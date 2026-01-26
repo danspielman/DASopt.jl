@@ -1,12 +1,12 @@
 module DASopt
 
-using FileIO, JLD2, Optim, Dates, Random, Distributed, ThreadsX
+using FileIO, JLD, Optim, Dates, Random, Distributed, ThreadsX
 using LinearAlgebra, Statistics
 
 include("util.jl")
 
-include("try_many.jl")
-export try_many, try_many_trans
+# include("try_many.jl")
+# export try_many, try_many_trans
 
 include("Popevolve.jl")
 export popevolve
@@ -14,17 +14,20 @@ export popevolve
 include("Randline.jl")
 export randline
 
-include("optim_wrap.jl")
-export optim_wrap, optim_wrap_many, optim_tlim, EveryN, EveryTic
-export optim_wrap_tlim
+# include("optim_wrap.jl")
+# export optim_wrap, optim_wrap_many, optim_tlim, EveryN, EveryTic
+# export optim_wrap_tlim
 
-# include("optim_wrap1.jl")
-# export optim_wrap, optim_wrap_main
+include("optim_wrap1.jl")
+export optim_wrap, optim_wrap_main
 
 include("GoWin.jl")
 export gowin
 
-include("multi_opt.jl")
+# include("multi_opt.jl")
+# export multi_opt
+
+include("multi_opt1.jl")
 export multi_opt
 
 include("dastest.jl")

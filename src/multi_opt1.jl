@@ -135,7 +135,7 @@ function multi_opt(sense, f::Function, gen::Function, mapin=identity; t_lim = 0,
 
     end
 
-    verbosity == 0 && daslog("Best NM found value $(best_NM[1]) in $(round(best_NM[2],digits=3)) seconds (iters=$(round(Int, best_NM[3]*1_000)), nrounds=$(round(Int, best_NM[4])*nrounds))")
+    verbosity > 0 && daslog("Best NM found value $(best_NM[1]) in $(round(best_NM[2],digits=3)) seconds (iters=$(round(Int, best_NM[3]*1_000)), nrounds=$(round(Int, best_NM[4])*nrounds))")
 
     # LBFGS
 
@@ -224,13 +224,13 @@ function multi_opt(sense, f::Function, gen::Function, mapin=identity; t_lim = 0,
 
     end
 
-    verbosity == 0 && daslog("Best LBFGS found value $(best_LBFGS[1]) in $(round(best_LBFGS[2],digits=3)) seconds (iters=$(round(Int, best_LBFGS[3]*1_000)), nrounds=$(round(Int, best_LBFGS[4])*nrounds))")
+    verbosity > 0 && daslog("Best LBFGS found value $(best_LBFGS[1]) in $(round(best_LBFGS[2],digits=3)) seconds (iters=$(round(Int, best_LBFGS[3]*1_000)), nrounds=$(round(Int, best_LBFGS[4])*nrounds))")
     
     # popevolve
 
-    verbosity == 0 && daslo("Popevolve. ")
+    verbosity > 0 && daslo("Popevolve. ")
     val, x = popevolve(sense, f, gen, mapin; 
-    t_lim = t_lim_pop, verbosity=sub_verbosity+1, stop_val, randline = 4,
+    t_lim = t_lim_pop, verbosity=sub_verbosity, stop_val, randline = 4,
     procs
     )
 
@@ -241,10 +241,10 @@ function multi_opt(sense, f::Function, gen::Function, mapin=identity; t_lim = 0,
     end
 
 
-    if verbosity == 0
+    if verbosity > 0
         daslo("\nRan for $(time()-t0) seconds. Best alg: $(bestalg). ")
+        daslog("Val: $bestval")
     end
-    daslog("Val: $bestval")
 
     return bestval, bestx
 

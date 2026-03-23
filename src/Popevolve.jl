@@ -84,7 +84,7 @@ function popevolve(f::Function, gen::Function, t_lim;
 
     @assert !(parallel && threads)
 
-    n = n_fac*length(gen())
+    n = round(Int,n_fac*length(gen()))
 
     t0 = time()
 
@@ -290,7 +290,7 @@ function popevolve_pop(f::Function, pop::AbstractArray{Array{T,N},1}, t_lim;
             daslog("Round $(round): best: $(best), worst: $(worst).")
         end
 
-        if abs(best - worst) < conv_tol
+        if abs(best - median(vals)) < conv_tol
             break
         end
     end
@@ -327,7 +327,7 @@ function popevolve(f::Function, x0::AbstractArray{Float64}, t_lim;
 
     @assert !(parallel && threads)
 
-    n = n_fac*length(x0)
+    n = round(Int,n_fac*length(x0))
 
     sz = size(x0)
 

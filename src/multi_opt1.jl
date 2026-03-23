@@ -228,11 +228,26 @@ function multi_opt(sense, f::Function, gen::Function, mapin=identity; t_lim = 0,
     
     # popevolve
 
-    verbosity > 0 && daslo("Popevolve. ")
-    val, x = popevolve(sense, f, gen, mapin; 
-    t_lim = t_lim_pop, verbosity=sub_verbosity, stop_val, randline = 4,
-    procs
-    )
+
+    # try with fac being 10 / 5^i, while this will keep pop size > 10
+    k = 1; 
+    n_len = length(gen())
+    nt = 10*n_len
+    while nt > 50
+       k += 1
+       nt /= 5
+    end
+
+    fac = 10
+
+    for i in 1:k
+        verbosity > 0 && daslo("Popevolve_fac$(fac). ")
+        val, x = popevolve(sense, f, gen, mapin; 
+        t_lim = t_lim_pop/k, verbosity=sub_verbosity, stop_val, randline = 4,
+        procs
+        )
+        fac /= 5
+    end
 
     if comp(val, bestval)
         bestval = val

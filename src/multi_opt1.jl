@@ -243,7 +243,7 @@ function multi_opt(sense, f::Function, gen::Function, mapin=identity; t_lim = 0,
     for i in 1:k
         verbosity > 0 && daslo("Popevolve_fac$(fac). ")
         val, x = popevolve(sense, f, gen, mapin; 
-        t_lim = t_lim_pop/k, verbosity=sub_verbosity, stop_val, randline = 4,
+        t_lim = t_lim_pop/k, verbosity=sub_verbosity, stop_val, randline = 4, n_fac = fac,
         procs
         )
         fac /= 5

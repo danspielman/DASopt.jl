@@ -37,7 +37,7 @@ function optim_wrap(sense::Symbol, f::Function, x0::Array, mapin::Function=ident
     return val, x, x0
 end
 
-function optim_wrap(sense::Symbol, f::Function, gen::Function, mapin::Function=identity;
+function optim_wrap_sub(sense::Symbol, f::Function, gen::Function, mapin::Function=identity;
     nrounds::Int=1,
     n_starts::Int=1,
     optfunc=NelderMead(),
@@ -88,7 +88,7 @@ optim_wrap(sense::typeof(min), obj::Function, args...; kwargs...) = optim_wrap(:
 optim_wrap(sense::typeof(max), obj::Function, args...; kwargs...) = optim_wrap(:Max, obj, args...; kwargs...)
 
 
-function optim_wrap_sub(sense, f::Function, gen::Function, mapin=identity; 
+function optim_wrap_inner(sense, f::Function, gen::Function, mapin=identity; 
         t_lim = Inf,
         n_trials = Inf,
         nrounds = 1,
@@ -167,7 +167,7 @@ function optim_wrap_sub(sense, f::Function, gen::Function, mapin=identity;
 
         optim_out = []
 
-        a = optim_wrap(sense, f, gen, mapin;
+        a = optim_wrap_sub(sense, f, gen, mapin;
             nrounds,
             n_starts,
             optfunc,
@@ -215,7 +215,7 @@ function optim_wrap_sub(sense, f::Function, gen::Function, mapin=identity;
     return besta[1], besta[2], iters, n_converged, rep
 end
 
-function optim_wrap_main(sense, f::Function, gen::Function, mapin=identity; 
+function optim_wrap(sense, f::Function, gen::Function, mapin=identity; 
         t_lim = Inf,
         n_trials = Inf,
         procs = 0,
@@ -251,7 +251,7 @@ function optim_wrap_main(sense, f::Function, gen::Function, mapin=identity;
         @warn "No budget set, just running once"
         x0 = gen()
 
-        val, x, _ = optim_wrap(sense, obj, x0, mapin;
+        val, x, _ = optim_wrap_sub(sense, obj, x0, mapin;
             nrounds,
             optfunc,
             options,
@@ -265,7 +265,7 @@ function optim_wrap_main(sense, f::Function, gen::Function, mapin=identity;
     sub_verbosity = max(0,verbosity-1)
 
     if parallel
-        sub = j->optim_wrap_sub(sense, f, gen, mapin; 
+        sub = j->optim_wrap_inner(sense, f, gen, mapin; 
             t_lim,
             n_trials,
             nrounds, 
@@ -281,7 +281,7 @@ function optim_wrap_main(sense, f::Function, gen::Function, mapin=identity;
             thisid = j,
             stop_val)
     else
-        sub = ()->optim_wrap_sub(sense, f, gen, mapin; 
+        sub = ()->optim_wrap_inner(sense, f, gen, mapin; 
             t_lim,
             n_trials,
             nrounds, 

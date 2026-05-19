@@ -19,7 +19,7 @@ export randline
 # export optim_wrap_tlim
 
 include("optim_wrap1.jl")
-export optim_wrap, optim_wrap_main
+export optim_wrap
 
 include("GoWin.jl")
 export gowin

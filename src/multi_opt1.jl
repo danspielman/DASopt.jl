@@ -23,7 +23,7 @@ function multi_opt(sense, f::Function, gen::Function, mapin=identity; t_lim = 0,
         comp = <
     end
 
-    sub_verbosity = verbosity 
+    sub_verbosity = max(0,verbosity-1)
     best_alg = ""
 
     report_iters = []
@@ -56,8 +56,8 @@ function multi_opt(sense, f::Function, gen::Function, mapin=identity; t_lim = 0,
     #     daslog()
     # end
 
-    verbosity > 0 && daslo("NM. ")
-    val, x = optim_wrap_main(sense, f, gen, mapin; 
+    verbosity > 1 && daslo("NM. ")
+    val, x = optim_wrap(sense, f, gen, mapin; 
         t_lim = t_lim_NM, nrounds, procs, verbosity=sub_verbosity,
         report_iters, stop_val)
 
@@ -84,16 +84,16 @@ function multi_opt(sense, f::Function, gen::Function, mapin=identity; t_lim = 0,
 
             if more_iters
                 fac_iters *= 10
-                verbosity > 0 && daslo("NM_it$(fac_iters)nr$(fac_nrounds). ")
-                val, x = optim_wrap_main(sense, f, gen, mapin; 
+                verbosity > 1 && daslo("NM_it$(fac_iters)nr$(fac_nrounds). ")
+                val, x = optim_wrap(sense, f, gen, mapin; 
                     t_lim = t_lim2, procs, verbosity=sub_verbosity,
                     report_iters, stop_val,
                     nrounds = fac_nrounds * nrounds,
                     options = Optim.Options(iterations=round(Int, fac_iters*1_000)))
             else
                 fac_nrounds *= 2
-                verbosity > 0 && daslo("NM_it$(fac_iters)nr$(fac_nrounds). ")
-                val, x = optim_wrap_main(sense, f, gen, mapin; 
+                verbosity > 1 && daslo("NM_it$(fac_iters)nr$(fac_nrounds). ")
+                val, x = optim_wrap(sense, f, gen, mapin; 
                     t_lim = t_lim2, procs, verbosity=sub_verbosity,
                     report_iters, stop_val,
                     nrounds = fac_nrounds * nrounds,
@@ -104,14 +104,14 @@ function multi_opt(sense, f::Function, gen::Function, mapin=identity; t_lim = 0,
             t_lim2 /= 2
             fac_iters /= 2
             fac_nrounds = max(2, fac_nrounds ÷ 2)
-            verbosity > 0 && daslo("NM_it$(fac_iters)nr$(fac_nrounds). ")
-            val, x = optim_wrap_main(sense, f, gen, mapin; 
+            verbosity > 1 && daslo("NM_it$(fac_iters)nr$(fac_nrounds). ")
+            val, x = optim_wrap(sense, f, gen, mapin; 
                 t_lim = t_lim2, procs, verbosity=sub_verbosity,
                 report_iters, stop_val,
                 nrounds = fac_nrounds * nrounds,
                 options = Optim.Options(iterations=round(Int, fac_iters*1_000)))
         else
-            val, x = optim_wrap_main(sense, f, gen, mapin; 
+            val, x = optim_wrap(sense, f, gen, mapin; 
                 t_lim = t_lim2, procs, verbosity=sub_verbosity,
                 report_iters, stop_val,
                 nrounds = fac_nrounds * nrounds,
@@ -135,12 +135,12 @@ function multi_opt(sense, f::Function, gen::Function, mapin=identity; t_lim = 0,
 
     end
 
-    verbosity > 0 && daslog("Best NM found value $(best_NM[1]) in $(round(best_NM[2],digits=3)) seconds (iters=$(round(Int, best_NM[3]*1_000)), nrounds=$(round(Int, best_NM[4])*nrounds))")
+    verbosity > 1 && daslog("Best NM found value $(best_NM[1]) in $(round(best_NM[2],digits=3)) seconds (iters=$(round(Int, best_NM[3]*1_000)), nrounds=$(round(Int, best_NM[4])*nrounds))")
 
     # LBFGS
 
-    verbosity > 0 && daslo("\nLBFGS. ")
-    val, x = optim_wrap_main(sense, f, gen, mapin; 
+    verbosity > 1 && daslo("\nLBFGS. ")
+    val, x = optim_wrap(sense, f, gen, mapin; 
         t_lim = t_lim_LBFGS, nrounds, procs, verbosity=sub_verbosity,
         report_iters, stop_val,
         optfunc = LBFGS(;linesearch = LineSearches.BackTracking()))
@@ -169,8 +169,8 @@ function multi_opt(sense, f::Function, gen::Function, mapin=identity; t_lim = 0,
 
             if more_iters
                 fac_iters *= 10
-                verbosity > 0 && daslo("LBFGS_it$(fac_iters)nr$(fac_nrounds). ")
-                val, x = optim_wrap_main(sense, f, gen, mapin; 
+                verbosity > 1 && daslo("LBFGS_it$(fac_iters)nr$(fac_nrounds). ")
+                val, x = optim_wrap(sense, f, gen, mapin; 
                     t_lim = t_lim2, procs, verbosity=sub_verbosity,
                     report_iters, stop_val,
                     optfunc = LBFGS(;linesearch = LineSearches.BackTracking()),
@@ -178,8 +178,8 @@ function multi_opt(sense, f::Function, gen::Function, mapin=identity; t_lim = 0,
                     options = Optim.Options(iterations=round(Int, fac_iters*1_000)))
             else
                 fac_nrounds *= 2
-                verbosity > 0 && daslo("LBFGS_it$(fac_iters)nr$(fac_nrounds). ")
-                val, x = optim_wrap_main(sense, f, gen, mapin; 
+                verbosity > 1 && daslo("LBFGS_it$(fac_iters)nr$(fac_nrounds). ")
+                val, x = optim_wrap(sense, f, gen, mapin; 
                     t_lim = t_lim2, procs, verbosity=sub_verbosity,
                     report_iters, stop_val,
                     optfunc = LBFGS(;linesearch = LineSearches.BackTracking()),
@@ -191,15 +191,15 @@ function multi_opt(sense, f::Function, gen::Function, mapin=identity; t_lim = 0,
             t_lim2 /= 2
             fac_iters /= 2
             fac_nrounds = max(2, fac_nrounds ÷ 2)
-            verbosity > 0 && daslo("LBFGS_it$(fac_iters)nr$(fac_nrounds). ")
-            val, x = optim_wrap_main(sense, f, gen, mapin; 
+            verbosity > 1 && daslo("LBFGS_it$(fac_iters)nr$(fac_nrounds). ")
+            val, x = optim_wrap(sense, f, gen, mapin; 
                 t_lim = t_lim2, procs, verbosity=sub_verbosity,
                 report_iters, stop_val,
                 optfunc = LBFGS(;linesearch = LineSearches.BackTracking()),
                 nrounds = fac_nrounds * nrounds,
                 options = Optim.Options(iterations=round(Int, fac_iters*1_000)))
         else
-            val, x = optim_wrap_main(sense, f, gen, mapin; 
+            val, x = optim_wrap(sense, f, gen, mapin; 
                 t_lim = t_lim2, procs, verbosity=sub_verbosity,
                 report_iters, stop_val,
                 optfunc = LBFGS(;linesearch = LineSearches.BackTracking()),
@@ -224,7 +224,7 @@ function multi_opt(sense, f::Function, gen::Function, mapin=identity; t_lim = 0,
 
     end
 
-    verbosity > 0 && daslog("Best LBFGS found value $(best_LBFGS[1]) in $(round(best_LBFGS[2],digits=3)) seconds (iters=$(round(Int, best_LBFGS[3]*1_000)), nrounds=$(round(Int, best_LBFGS[4])*nrounds))")
+    verbosity > 1 && daslog("Best LBFGS found value $(best_LBFGS[1]) in $(round(best_LBFGS[2],digits=3)) seconds (iters=$(round(Int, best_LBFGS[3]*1_000)), nrounds=$(round(Int, best_LBFGS[4])*nrounds))")
     
     # popevolve
 
@@ -241,18 +241,19 @@ function multi_opt(sense, f::Function, gen::Function, mapin=identity; t_lim = 0,
     fac = 10
 
     for i in 1:k
-        verbosity > 0 && daslo("Popevolve_fac$(fac). ")
+        verbosity > 1 && daslo("Popevolve_fac$(fac). ")
         val, x = popevolve(sense, f, gen, mapin; 
         t_lim = t_lim_pop/k, verbosity=sub_verbosity, stop_val, randline = 4, n_fac = fac,
         procs
         )
         fac /= 5
-    end
 
-    if comp(val, bestval)
-        bestval = val
-        bestx = copy(x)
-        bestalg = "Popevolve"
+
+        if comp(val, bestval)
+            bestval = val
+            bestx = copy(x)
+            bestalg = "Popevolve_fac$(fac)"
+        end
     end
 
 
